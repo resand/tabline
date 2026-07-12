@@ -344,6 +344,25 @@ main {
   font-variant-numeric: tabular-nums; /* digits don't shift when the time changes */
 }
 
+.clock-time-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: clamp(0.3rem, 0.8vh, 0.6rem);
+}
+
+.clock-meridiem {
+  font-size: clamp(0.9rem, 2.2vh, 1.4rem);
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: hsl(var(--text-muted));
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.clock-meridiem:empty {
+  display: none;
+}
+
 .clock-date {
   font-size: clamp(0.8rem, 1.4vh, 1.1rem);
   font-weight: 400;

@@ -199,6 +199,8 @@ const I18N = {
     'shortcuts.emptyTitle': 'Agrega tu primer atajo',
     'shortcuts.emptySubtitle': 'Toca aquí o el botón "+" para empezar',
     'clock.loadingDate': 'Cargando fecha…',
+    'clock.am': 'AM',
+    'clock.pm': 'PM',
     'settings.title': 'Configuración',
     'settings.close': 'Cerrar',
     'settings.clockSection': 'Reloj y Fecha',
@@ -364,6 +366,8 @@ const I18N = {
     'shortcuts.emptyTitle': 'Add your first shortcut',
     'shortcuts.emptySubtitle': 'Tap here or the "+" button to get started',
     'clock.loadingDate': 'Loading date…',
+    'clock.am': 'AM',
+    'clock.pm': 'PM',
     'settings.title': 'Settings',
     'settings.close': 'Close',
     'settings.clockSection': 'Clock & Date',
@@ -562,6 +566,7 @@ class NewTabController {
       sidebarWallpapersBtn: document.getElementById('sidebar-wallpapers-btn'),
 
       clockTime: document.getElementById('clock-time'),
+      clockMeridiem: document.getElementById('clock-meridiem'),
       clockDate: document.getElementById('clock-date'),
       bgImage: document.getElementById('bg-image'),
       searchInput: document.getElementById('search-input'),
@@ -1518,15 +1523,21 @@ class NewTabController {
     const now = new Date();
     let hours = now.getHours();
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    
+    let meridiem = '';
+
     if (this.state.settings.timeFormat12) {
+      meridiem = hours < 12 ? this.t('clock.am') : this.t('clock.pm');
       hours = hours % 12 || 12;
     }
-    
-    const formattedHours = String(hours).padStart(2, '0');
-    this.dom.clockTime.textContent = `${formattedHours}:${minutes}`;
 
-    // Elegant date formatter in Spanish
+    // 24h keeps the leading zero (08:30); 12h drops it (8:30 PM).
+    const formattedHours = this.state.settings.timeFormat12
+      ? String(hours)
+      : String(hours).padStart(2, '0');
+    this.dom.clockTime.textContent = `${formattedHours}:${minutes}`;
+    // Empty string in 24h mode; the CSS :empty rule collapses the span.
+    this.dom.clockMeridiem.textContent = meridiem;
+
     const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
     this.dom.clockDate.textContent = now.toLocaleDateString(this.lang === 'en' ? 'en-US' : 'es-ES', options);
   }
