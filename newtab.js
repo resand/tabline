@@ -3508,8 +3508,9 @@ class NewTabController {
 
   /**
    * Move a shortcut from its current global index to the destination page.
-   * Inserts at the end of the destination page's slice so it lands somewhere
-   * visible; user can fine-tune with another drag.
+   * Inserts at the last slot of the destination page (pushing later items
+   * right) so it lands somewhere visible; user can fine-tune with another
+   * drag.
    */
   async moveShortcutToPage(srcGlobal, destPage) {
     const arr = this.state.shortcuts;
@@ -3518,12 +3519,10 @@ class NewTabController {
     const totalPages = Math.ceil(arr.length / slots) || 1;
     if (destPage < 0 || destPage >= totalPages) return;
 
-    // Pick the insertion target BEFORE splicing: end of the destination page's
-    // slice so the moved shortcut lands at the tail of that page.
-    let insertAt = Math.min((destPage + 1) * slots, arr.length);
     const [moved] = arr.splice(srcGlobal, 1);
-    if (srcGlobal < insertAt) insertAt -= 1;
-    insertAt = Math.max(0, Math.min(insertAt, arr.length));
+    // Land on the last slot of the destination page (or append when the page is
+    // partially filled) so the moved shortcut is always visible on destPage.
+    const insertAt = Math.min((destPage + 1) * slots - 1, arr.length);
     arr.splice(insertAt, 0, moved);
 
     await this.repository.saveShortcuts(this.state.shortcuts);
