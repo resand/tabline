@@ -931,8 +931,12 @@ class NewTabController {
    * Returns null if the request fails, it's not an image, or it's too heavy.
    */
   async cacheIconUrl(url) {
+    // Abort after 4.5s so a hung host can't stall the Save flow forever
+    // (mirrors tryFetchPageTitle). Cookies are never needed for icons.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal, credentials: 'omit' });
       if (!res.ok) return null;
       const blob = await res.blob();
       if (!/^image\//.test(blob.type)) return null;
@@ -945,6 +949,8 @@ class NewTabController {
       });
     } catch (_) {
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -1101,9 +1107,13 @@ class NewTabController {
    * Initialization use case
    */
   async init() {
-    // Load state from repository
-    this.state.settings = await this.repository.getSettings();
-    this.state.shortcuts = await this.repository.getShortcuts();
+    // Load state from repository (independent keys — read them in parallel)
+    const [settings, shortcuts] = await Promise.all([
+      this.repository.getSettings(),
+      this.repository.getShortcuts()
+    ]);
+    this.state.settings = settings;
+    this.state.shortcuts = shortcuts;
 
     // Apply the language before rendering the interface
     this.applyI18n();
@@ -1115,10 +1125,20 @@ class NewTabController {
     this.bindEvents();
     this.initDialogTabs();
 
-    // Start clock cycle (handles guarded so a re-init doesn't stack intervals).
+    // Clock ticks on the minute boundary — the display is HH:MM, so a 1s
+    // interval would recompute an identical string 59 times out of 60.
     this.updateClock();
     if (this._clockInterval) clearInterval(this._clockInterval);
-    this._clockInterval = setInterval(() => this.updateClock(), 1000);
+    this._clockInterval = null;
+    if (this._clockTimeout) clearTimeout(this._clockTimeout);
+    const scheduleClockTick = () => {
+      // +50ms of slack so the tick always lands just AFTER the minute rolls.
+      this._clockTimeout = setTimeout(() => {
+        this.updateClock();
+        scheduleClockTick();
+      }, 60000 - (Date.now() % 60000) + 50);
+    };
+    scheduleClockTick();
 
     // Re-evaluate the night dim every minute (in case the schedule boundary is crossed)
     if (this._dimNightInterval) clearInterval(this._dimNightInterval);
@@ -1872,6 +1892,10 @@ class NewTabController {
   }
 
   renderBackground() {
+    // Generation token: async continuations below must bail if another
+    // renderBackground ran after them (provider switched mid-flight).
+    this._bgGen = (this._bgGen || 0) + 1;
+    const gen = this._bgGen;
     const settings = this.state.settings;
     this.dom.bgImage.replaceChildren(); // Clear video tags or content
     this.dom.bgImage.className = 'bg-image-wrapper'; // Reset class
@@ -1919,10 +1943,14 @@ class NewTabController {
         this._currentVideoBlobUrl = null;
       }
       this.idbGetVideoURL().then((url) => {
-        if (url) {
-          this._currentVideoBlobUrl = url;
-          this.mountBackgroundVideo(url);
+        if (!url) return;
+        if (gen !== this._bgGen) {
+          // A newer render won the race — don't mount, don't leak the blob.
+          URL.revokeObjectURL(url);
+          return;
         }
+        this._currentVideoBlobUrl = url;
+        this.mountBackgroundVideo(url);
       }).catch((err) => console.error('Error reading local video:', err));
     } else if (settings.bgProvider === 'video' || settings.bgProvider === 'video-url') {
       // Leaving 'video-file' for another provider — release the held blob URL.
@@ -1941,6 +1969,7 @@ class NewTabController {
       const img = new Image();
       img.src = bgUrlToApply;
       img.onload = () => {
+        if (gen !== this._bgGen) return; // stale — a newer background already rendered
         // Escape backslashes and single quotes so a hostile URL can't break out
         // of the url('...') CSS literal and inject extra declarations.
         const safeUrl = bgUrlToApply.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
