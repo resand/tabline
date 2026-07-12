@@ -1,5 +1,13 @@
 /* Material Design 3 + Glassmorphism Design System */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,700&display=swap');
+/* Roboto Flex, self-hosted (variable, latin subset) — no network requests. */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('fonts/roboto-flex-latin.woff2') format('woff2-variations');
+}
 
 :root {
   /* ── Accent palette (overridden by JS via applyAccentPalette). Default
@@ -46,7 +54,7 @@
   --md-shape-full: 50px;
 
   /* ── MD3 Typescale ── */
-  --md-font: 'Roboto Flex', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-font: 'Roboto Flex', -apple-system, BlinkMacSystemFont, sans-serif;
   --md-display-large:   57px;
   --md-display-medium: 45px;
   --md-headline-large:  32px;
