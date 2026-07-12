@@ -6,7 +6,7 @@ Guidance for AI coding assistants working on **TabLine**, a Chrome new-tab exten
 
 ## 1. What this project is
 
-**TabLine** replaces Chrome's default new-tab page with a personal launcher: a clock, Google search bar, a 7×3 paginated grid of reorderable app shortcuts, and a customizable background (gradient, wallpaper gallery, daily rotation, video gallery, custom URL, or local file).
+**TabLine** replaces Chrome's default new-tab page with a personal launcher: a clock, Google search bar, a paginated 7-column grid of reorderable app shortcuts (3 or 4 rows per the density setting), and a customizable background (gradient, wallpaper gallery, daily rotation, video gallery, custom URL, or local file).
 
 > Note: the project was renamed from "DashTab" (which collided with several existing Chrome Web Store extensions). Some internal identifiers — notably the IndexedDB name `dashtab-bg` — kept the old slug on purpose to avoid breaking storage for existing users. Don't rename those without a migration path.
 
@@ -33,8 +33,8 @@ manifest.json          Chrome MV3 manifest with __MSG_*__ localization placehold
 _locales/en/messages.json   Manifest copy (name, description) in English
 _locales/es/messages.json   Manifest copy in Spanish
 newtab.html            Single-page UI (entry: chrome_url_overrides.newtab)
-newtab.js              ~2.9k lines. Class NewTabController + I18N + CURATED_* arrays + StorageRepository + Shortcut
-newtab.css             ~2.8k lines. Design tokens in :root, then components
+newtab.js              ~3.7k lines. Class NewTabController + I18N + CURATED_* arrays + StorageRepository + Shortcut
+newtab.css             ~3.2k lines. Design tokens in :root, then components
 wallpapers/            bg1.png…bg17.png + vid_*.mp4 (gallery assets)
 icons/                 Extension icons (16, 48, 128)
 PRODUCT.md             Strategic guide (register, users, anti-references)
@@ -52,14 +52,16 @@ GEMINI.md              AI assistant guide — this file
 ## 4. Key subsystems
 
 ### i18n (custom, not `chrome.i18n` for the UI)
-- Dictionary: `I18N = { es: {...}, en: {...} }` in `newtab.js`. Currently ~150 keys per locale, parity enforced.
+- Dictionary: `I18N = { es: {...}, en: {...} }` in `newtab.js`. Currently ~164 keys per locale, parity enforced.
 - `t(key, vars)` translates with `{var}` interpolation.
 - `resolveLang()` reads `settings.language` (`'auto' | 'es' | 'en'`); `auto` follows `navigator.language` (default English for non-Spanish).
-- `applyI18n()` walks four attributes:
+- `applyI18n()` walks six attributes:
   - `[data-i18n]` → `textContent`
   - `[data-i18n-ph]` → `placeholder`
   - `[data-i18n-title]` → `title` (native browser tooltip)
   - `[data-i18n-tooltip]` → `data-tooltip` + `aria-label` (used by **custom CSS tooltips** so we never set `title` and avoid the native tooltip flash)
+  - `[data-i18n-alt]` → `alt`
+  - `[data-i18n-aria]` → `aria-label` (static labels not tied to a tooltip)
 - Dynamic strings (toasts, dialog titles, video labels) call `t()` directly.
 - **`_locales/` is separate** from `I18N`. It only localizes `manifest.json` (`name`, `description`) for the Chrome Web Store listing. The runtime UI uses the `I18N` dictionary.
 
@@ -87,7 +89,7 @@ GEMINI.md              AI assistant guide — this file
 - Native image drag (`<img draggable="true">`) is disabled to prevent the browser hijacking the gesture.
 
 ### Pagination
-- 7×3 = 21 shortcuts per page. `state.slotsPerPage = 21`.
+- 7 columns × 3 or 4 rows per page. `computeSlotsPerPage()` returns `7 × rows` from the `gridDensity` setting (`'auto' | '3' | '4'`); `'auto'` picks 4 rows when `window.innerHeight >= 960`, else 3. `state.slotsPerPage` is refreshed on every `renderShortcuts()`.
 - `goToPage(target)` infers direction, toggles `.flip-next` / `.flip-prev` on the grid (Apple-style spring 320 ms), then renders.
 - Mouse wheel over the grid is throttled to 280 ms to match the animation.
 - `←` / `→` keys paginate when no overlay is open.

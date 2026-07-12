@@ -125,7 +125,7 @@ Before submitting `v0.9.0+`:
   Google's s2/favicons as a fallback".
 - Provide at least one screenshot (1280×800) and a hosted privacy policy URL
   (current one: `https://renes.dev/privacy-tabline`).
-- Run the sanity checks above; all three must return `OK`.
+- Run the sanity checks above; all four must return `OK`.
 
 For full strategic and design context, read `PRODUCT.md` and `DESIGN.md`.
 For per-version history, read `CHANGELOG.md`.
