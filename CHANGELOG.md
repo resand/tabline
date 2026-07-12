@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.2] — 2026-07-11
+
+### Fixed
+
+- **Cross-page drag** now drops the shortcut on the page whose dot you dropped
+  it on. It used to overflow onto the following page whenever the destination
+  page was full (i.e. almost always), while the view jumped to the target
+  page — so the shortcut seemed to vanish.
+- The **12-hour clock** now shows an AM/PM indicator and drops the leading
+  zero (`8:30 PM` instead of `08:30`). Noon and midnight were previously
+  indistinguishable.
+- Switching backgrounds while a video or image was still loading no longer
+  mounts the stale background on top of the new one, and no longer leaks a
+  blob URL.
+- Saving a shortcut whose icon host hangs no longer freezes the dialog: icon
+  downloads abort after 4.5 s and fall back to the remote URL.
+
+### Changed
+
+- **Roboto Flex is now bundled** with the extension (self-hosted
+  `@font-face`, latin subset). New tabs no longer make any request to Google
+  Fonts — the extension is fully local at runtime.
+- **Backup import is one step**: the button opens the file picker and the
+  import runs on selection. The factory-reset button moved to its own
+  section, visually apart from the backup group.
+- Startup reads settings and shortcuts in parallel, and the clock re-renders
+  once per minute instead of every second.
+- Icon downloads are made without cookies (`credentials: 'omit'`).
+- `PRIVACY.md` matches the shipped permissions (`search` instead of the
+  removed `tabs`) and discloses the page-title fetch.
+
+### Added
+
+- `minimum_chrome_version: "119"` in the manifest — the theme system depends
+  on CSS relative color syntax, unavailable in older Chrome.
+
+---
+
 ## [0.9.1] — 2026-06-02
 
 Chrome Web Store review compliance. No new features; these changes address two
@@ -173,5 +211,5 @@ of app shortcuts, and a customizable wallpaper.
 - `credentials: 'omit'` on the auto-title fetch so the user's cookies
   never reach the target domain at add-shortcut time.
 
+[0.9.2]: https://github.com/resand/tabline/releases/tag/v0.9.2
 [0.9.1]: https://github.com/resand/tabline/releases/tag/v0.9.1
-[0.9.0]: https://github.com/resand/tabline/releases/tag/v0.9.0
