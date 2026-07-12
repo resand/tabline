@@ -1,8 +1,6 @@
 # GEMINI.md
 
-Guidance for AI coding assistants (Gemini CLI) working on **TabLine**, a Chrome new-tab extension.
-
-> The exact same file lives at `CLAUDE.md` for Claude Code. Keep them in sync if you edit one.
+Guidance for AI coding assistants working on **TabLine**, a Chrome new-tab extension.
 
 ---
 
@@ -44,7 +42,7 @@ DESIGN.md              Visual guide (color, typography, motion, components)
 README.md              Setup, sanity checks, pre-launch checklist
 CHANGELOG.md           Per-version changes (Keep a Changelog format)
 PRIVACY.md             Privacy policy (also hosted at renes.dev/privacy-tabline)
-CLAUDE.md / GEMINI.md  This file
+GEMINI.md              AI assistant guide — this file
 ```
 
 **Everything is in `NewTabController`** today. It does storage, render, drag-and-drop, i18n, IndexedDB, background, shortcuts, themes, context menu, toast, etc. There is a documented refactor opportunity to split it into modules; leave that alone unless explicitly asked.

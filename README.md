@@ -35,11 +35,8 @@ PRODUCT.md              Strategic guide (register, target users, anti-references
 DESIGN.md               Visual guide (color, typography, motion, themes, components)
 CHANGELOG.md            Per-version changes (Keep a Changelog format)
 PRIVACY.md              Privacy policy
-CLAUDE.md               AI assistant guidance — read before contributing
-GEMINI.md               Same as CLAUDE.md, kept in sync
+GEMINI.md               AI assistant guidance — read before contributing
 ```
-
-If you change one of `CLAUDE.md` / `GEMINI.md`, keep the other in sync.
 
 ---
 
@@ -71,7 +68,7 @@ python3 -c 'import json; json.load(open("manifest.json")); json.load(open("_loca
 
 ---
 
-## Conventions (short version — see `CLAUDE.md` for the full set)
+## Conventions (short version — see `GEMINI.md` for the full set)
 
 - **All code and code comments in English.** UI strings live in the `I18N` dictionary where Spanish and English coexist as content.
 - **Never use `innerHTML` with user-controlled content.** Build DOM with `createElement` + `textContent`.
