@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Simplified variant for tiny renders (16, 24 px). At those sizes a 3x3
+       grid collapses into a blob — 2x2 keeps the "grid" idea readable. -->
+  <rect width="128" height="128" rx="28" fill="#1a1620"/>
+  <g fill="#c4b5fd">
+    <rect x="26" y="26" width="34" height="34" rx="8"/>
+    <rect x="68" y="26" width="34" height="34" rx="8"/>
+    <rect x="26" y="68" width="34" height="34" rx="8"/>
+    <rect x="68" y="68" width="34" height="34" rx="8"/>
+  </g>
+</svg>

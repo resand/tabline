@@ -1,0 +1,10 @@
+{
+  "ext_name": {
+    "message": "TabLine",
+    "description": "Nombre de la extensión mostrado en chrome://extensions y en la Chrome Web Store."
+  },
+  "ext_description": {
+    "message": "Una nueva pestaña silenciosa: reloj, búsqueda en Google, atajos squircle reordenables y fondos HD personalizables.",
+    "description": "Descripción corta mostrada en chrome://extensions y en la Chrome Web Store."
+  }
+}

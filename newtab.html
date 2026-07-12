@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabLine</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+
+<body>
+
+  <!-- Dynamic Wallpaper System -->
+  <div id="bg-image" class="bg-image-wrapper"></div>
+  <div class="bg-overlay"></div>
+
+  <!-- Right Sidebar Panel -->
+  <aside class="sidebar-right">
+    <div class="sidebar-group top">
+      <button id="add-shortcut-fab" class="sidebar-btn add-shortcut-btn-primary" type="button"
+        data-i18n-tooltip="shortcuts.add" aria-label="Add shortcut">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+      <button id="sidebar-about-btn" class="sidebar-btn" data-i18n-tooltip="sidebar.about" aria-label="About TabLine">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </button>
+      <button id="sidebar-settings-btn" class="sidebar-btn" data-i18n-tooltip="sidebar.settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
+        </svg>
+      </button>
+    </div>
+    <div class="sidebar-group bottom">
+      <button id="sidebar-wallpapers-btn" class="sidebar-btn" data-i18n-tooltip="sidebar.wallpapers"
+        aria-label="Wallpapers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Central Dashboard Content -->
+  <main>
+    <!-- Unified Search Component -->
+    <section class="search-container">
+      <div class="search-bar-wrapper">
+        <input type="text" id="search-input" class="search-input" data-i18n-ph="search.placeholderWeb"
+          placeholder="Buscar en la web..." autocomplete="off" autofocus>
+        <button id="search-submit-btn" class="search-btn" data-i18n-title="search.submit" title="Buscar">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Grid of App Shortcuts -->
+    <section class="shortcuts-section">
+      <div class="shortcuts-grid-container">
+        <div id="shortcuts-grid" class="shortcuts-grid">
+          <!-- Loading skeleton (21 placeholders covers the 3-row default; 4-row mode
+               fills the missing tile-row on first JS render). Replaced by
+               renderShortcuts() once storage resolves. -->
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+          <div class="shortcut-skeleton" aria-hidden="true"></div>
+        </div>
+      </div>
+      <!-- Pagination Controls -->
+      <div id="pagination-dots" class="pagination-dots" role="tablist" data-i18n-aria="pagination.barAria" aria-label="Pages"></div>
+    </section>
+
+    <!-- Clock Component (Moved to Bottom) -->
+    <section class="clock-container">
+      <div id="clock-time" class="clock-time">00:00</div>
+      <div id="clock-date" class="clock-date" data-i18n="clock.loadingDate">Cargando fecha...</div>
+    </section>
+  </main>
+
+  <!-- --- Settings Sidebar Drawer --- -->
+  <div id="settings-drawer" class="drawer">
+    <div class="drawer-header">
+      <h2 class="drawer-title" data-i18n="settings.title">Configuración</h2>
+      <button id="close-drawer-btn" class="close-drawer-btn" data-i18n-title="settings.close" title="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer-content">
+      <!-- Language Settings -->
+      <section class="settings-section">
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.langSection">Idioma</label>
+          <select id="language-select" class="form-select">
+            <option value="auto" data-i18n="settings.lang.auto">Automático</option>
+            <option value="es" data-i18n="settings.lang.es">Español</option>
+            <option value="en" data-i18n="settings.lang.en">Inglés</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Clock Settings -->
+      <section class="settings-section">
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.clockSection">Reloj y Fecha</label>
+          <div class="toggle-wrapper">
+            <span data-i18n="settings.time12">Formato de 12 horas</span>
+            <label class="switch">
+              <input type="checkbox" id="time-format-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Background Settings -->
+      <section class="settings-section">
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.bgSection">Fondo de Pantalla</label>
+          <select id="bg-provider-select" class="form-select">
+            <option value="gradient" data-i18n="settings.bg.gradient">Gradiente Animado (Vibrante)</option>
+            <option value="static" data-i18n="settings.bg.static">Galería de Wallpapers</option>
+            <option value="daily" data-i18n="settings.bg.daily">Wallpaper del Día</option>
+            <option value="video" data-i18n="settings.bg.video">Galería de Videos</option>
+            <option value="video-url" data-i18n="settings.bg.videoUrl">URL de Video</option>
+            <option value="video-file" data-i18n="settings.bg.videoFile">Cargar Video</option>
+            <option value="custom-url" data-i18n="settings.bg.url">URL de Imagen</option>
+            <option value="custom-file" data-i18n="settings.bg.file">Cargar imagen desde tu equipo</option>
+          </select>
+        </div>
+
+        <div id="bg-url-input-container" class="form-group" style="display: none;">
+          <label class="form-label" data-i18n="settings.imageUrl">URL de la Imagen</label>
+          <input type="url" id="bg-url-input" class="form-input" data-i18n-ph="settings.imageUrlPh"
+            placeholder="https://ejemplo.com/fondo.jpg">
+        </div>
+
+        <div id="bg-file-input-container" class="form-group" style="display: none;">
+          <label class="form-label" data-i18n="settings.selectFile">Seleccionar Archivo</label>
+          <div class="file-upload-wrapper">
+            <span id="file-upload-label" data-i18n="settings.chooseImage">Elegir imagen de fondo...</span>
+            <input type="file" id="bg-file-input" accept="image/*">
+          </div>
+        </div>
+
+        <div id="bg-video-input-container" class="form-group" style="display: none;">
+          <label class="form-label" data-i18n="settings.videoUrl">URL del Video (MP4)</label>
+          <input type="url" id="bg-video-input" class="form-input" data-i18n-ph="settings.videoUrlPh"
+            placeholder="https://ejemplo.com/video.mp4">
+        </div>
+
+        <div id="bg-video-file-container" class="form-group" style="display: none;">
+          <label class="form-label" data-i18n="settings.selectFile">Seleccionar Archivo</label>
+          <div class="file-upload-wrapper" id="bg-video-file-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="m22 8-6 4 6 4V8z" />
+              <rect x="2" y="6" width="14" height="12" rx="2" />
+            </svg>
+            <span id="bg-video-file-label" data-i18n="settings.chooseVideo">Cargar video desde tu equipo</span>
+            <input type="file" id="bg-video-file-input" accept="video/*">
+          </div>
+        </div>
+
+        <div class="dim-night-block">
+          <div class="toggle-wrapper">
+            <span data-i18n="settings.dimNight">Atenuar fondo en la noche</span>
+            <label class="switch">
+              <input type="checkbox" id="dim-night-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="setting-subtitle" data-i18n="settings.dimNightDesc">Oscurece el fondo automáticamente dentro de tu
+            horario nocturno.</p>
+          <div id="dim-night-status" class="dim-night-status"></div>
+          <div id="dim-night-options" class="dim-night-options">
+            <div class="time-range">
+              <label class="time-field">
+                <span data-i18n="settings.from">Desde</span>
+                <input type="time" id="dim-start-input" class="form-input time-input" value="19:00">
+              </label>
+              <label class="time-field">
+                <span data-i18n="settings.to">Hasta</span>
+                <input type="time" id="dim-end-input" class="form-input time-input" value="07:00">
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Components Settings -->
+      <section class="settings-section">
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.componentsSection">Componentes de Pantalla</label>
+          <div class="toggle-wrapper">
+            <span data-i18n="settings.showSearchBar">Mostrar Barra de Búsqueda</span>
+            <label class="switch">
+              <input type="checkbox" id="search-bar-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label range-label">
+            <span data-i18n="settings.iconCorners">Redondeo de iconos</span>
+            <span id="icon-roundness-value" class="range-value">25%</span>
+          </label>
+          <input type="range" id="icon-roundness-slider" class="range-slider" min="0" max="50" step="5" value="25">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.densitySection">Densidad de la grilla</label>
+          <select id="grid-density-select" class="form-select">
+            <option value="auto" data-i18n="settings.density.auto">Automático</option>
+            <option value="3" data-i18n="settings.density.3">3 filas</option>
+            <option value="4" data-i18n="settings.density.4">4 filas</option>
+          </select>
+          <p class="setting-subtitle" data-i18n="settings.densityDesc">«Automático» elige 3 o 4 filas según la altura de tu pantalla.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="settings.accentSection">Color de acento</label>
+          <div id="accent-swatches" class="accent-swatches" role="radiogroup" aria-label="Accent color">
+            <button type="button" class="accent-swatch" role="radio" data-palette="space"
+              style="--swatch-color: hsl(215, 10%, 38%);" data-i18n-tooltip="accent.space"
+              aria-label="Titanium Gray"></button>
+            <button type="button" class="accent-swatch" role="radio" data-palette="lavender"
+              style="--swatch-color: hsl(266, 61%, 78%);" data-i18n-tooltip="accent.lavender"
+              aria-label="Lavender"></button>
+            <button type="button" class="accent-swatch" role="radio" data-palette="sand"
+              style="--swatch-color: hsl(30, 65%, 70%);" data-i18n-tooltip="accent.sand"
+              aria-label="Sand"></button>
+            <button type="button" class="accent-swatch" role="radio" data-palette="ocean"
+              style="--swatch-color: hsl(200, 75%, 65%);" data-i18n-tooltip="accent.ocean"
+              aria-label="Ocean"></button>
+            <button type="button" class="accent-swatch" role="radio" data-palette="forest"
+              style="--swatch-color: hsl(145, 50%, 65%);" data-i18n-tooltip="accent.forest"
+              aria-label="Forest"></button>
+            <button type="button" class="accent-swatch" role="radio" data-palette="mono"
+              style="--swatch-color: hsl(0, 0%, 88%);" data-i18n-tooltip="accent.mono"
+              aria-label="Mono"></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Import / Export / Recovery Settings -->
+      <section class="settings-section">
+        <div class="form-group backup-group">
+          <label class="form-label" data-i18n="settings.backupSection">Copia de Seguridad</label>
+
+          <!-- Exportar -->
+          <button id="export-json-btn" class="form-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span data-i18n="settings.export">Exportar configuración (.json)</span>
+          </button>
+
+          <!-- Importar desde archivo -->
+          <div class="file-upload-wrapper" id="import-file-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+            <span id="import-file-label" data-i18n="settings.selectBackup">Seleccionar archivo de respaldo
+              (.json)</span>
+            <input type="file" id="import-json-file" accept=".json,application/json">
+          </div>
+          <button id="import-json-btn" class="form-btn secondary" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span data-i18n="settings.import">Importar configuración</span>
+          </button>
+
+          <!-- Restablecer -->
+          <button id="reset-config-btn" class="form-btn danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+            <span data-i18n="settings.reset">Restablecer valores de fábrica</span>
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- --- Glassmorphic Modal Dialog for Add/Edit Shortcut --- -->
+  <div id="shortcut-dialog" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-title"
+    aria-hidden="true" inert>
+    <div class="dialog">
+      <h3 id="dialog-title" class="dialog-title" data-i18n="dialog.addTitle">Agregar atajo</h3>
+      <div class="dialog-tabs">
+        <button class="dialog-tab-btn" data-tab="home" data-i18n="dialog.tabPopular">Populares</button>
+        <button class="dialog-tab-btn active" data-tab="custom" data-i18n="dialog.tabCustom">Personalizado</button>
+        <button class="dialog-tab-btn" data-tab="chrome" data-i18n="dialog.tabChrome">Chrome</button>
+      </div>
+
+      <!-- Tab Content: Home (Popular presets) -->
+      <div id="tab-content-home" class="tab-content" style="display: none;">
+        <h4 class="tab-subtitle" data-i18n="dialog.selectPopular">Selecciona un atajo popular</h4>
+        <div class="popular-grid" id="popular-shortcuts-grid">
+          <!-- Dynamically filled with popular presets by JS -->
+        </div>
+      </div>
+
+      <!-- Tab Content: Custom (Full customized app form) -->
+      <div id="tab-content-custom" class="tab-content active">
+        <div class="custom-tab-layout">
+          <!-- Left Column: Icon Preview & Zoom -->
+          <div class="dialog-left-col">
+            <div id="shortcut-preview-wrapper" class="shortcut-icon-wrapper-preview">
+              <div id="shortcut-preview-box" class="shortcut-preview-box" style="background-color: #1f2937;">
+                <span id="shortcut-preview-fallback">T</span>
+                <img id="shortcut-preview-img" src="" alt="" style="display: none;">
+              </div>
+            </div>
+            <div class="form-group zoom-control-group">
+              <label class="form-label zoom-label">
+                <span data-i18n="dialog.zoom">Zoom del icono</span>
+                <span id="zoom-value" class="zoom-value">100%</span>
+              </label>
+              <input type="range" id="shortcut-zoom-slider" min="0.5" max="2.5" step="0.05" value="1.00">
+            </div>
+
+            <div class="form-group fit-control-group">
+              <div class="toggle-wrapper">
+                <span class="form-label" data-i18n="dialog.fillIcon">Rellenar icono</span>
+                <label class="switch">
+                  <input type="checkbox" id="shortcut-fit-toggle">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: campos -->
+          <div class="dialog-right-col">
+            <div class="form-group">
+              <label class="form-label" for="shortcut-url" data-i18n="dialog.siteUrl">Dirección del sitio</label>
+              <input type="url" id="shortcut-url" class="form-input" data-i18n-ph="dialog.siteUrlPh"
+                placeholder="ej. github.com" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="shortcut-name" data-i18n="dialog.shortcutName">Nombre del atajo</label>
+              <input type="text" id="shortcut-name" class="form-input" data-i18n-ph="dialog.shortcutNamePh"
+                placeholder="ej. GitHub" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" data-i18n="dialog.iconSource">Origen del icono</label>
+              <input type="text" id="shortcut-icon-url-input" class="form-input" data-i18n-ph="dialog.iconUrlPh"
+                placeholder="Imagen por URL directa" style="margin-bottom: 8px;">
+              <div class="file-upload-wrapper mini">
+                <span id="icon-file-label" data-i18n="dialog.selectFile">Seleccionar archivo</span>
+                <input type="file" id="shortcut-icon-input" accept="image/*">
+              </div>
+              <div id="icon-url-actions" class="icon-url-actions" hidden>
+                <span class="icon-url-actions-hint" data-i18n="dialog.urlChanged">Cambiaste la URL del sitio</span>
+                <div class="icon-url-actions-row">
+                  <button type="button" id="icon-restore-btn" class="chip-btn chip-btn-ghost" data-i18n="dialog.restoreIcon">Restaurar original</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><span data-i18n="dialog.bgColor">Color de fondo</span> <span
+                  class="form-label-hint" data-i18n="dialog.bgColorHint">(si no hay icono)</span></label>
+              <div class="color-swatches" id="color-swatches">
+                <div class="color-swatch" style="background: transparent; border: 2px dashed rgba(255, 255, 255, 0.4);"
+                  data-color="transparent" data-i18n-title="dialog.transparent" title="Transparente"></div>
+                <div class="color-swatch active" style="background-color: #ef4444;" data-color="#ef4444"></div>
+                <div class="color-swatch" style="background-color: #ec4899;" data-color="#ec4899"></div>
+                <div class="color-swatch" style="background-color: #1f2937;" data-color="#1f2937"></div>
+                <div class="color-swatch" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+                <div class="color-swatch" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+                <div class="color-swatch" style="background-color: #10b981;" data-color="#10b981"></div>
+                <div class="color-swatch" style="background-color: #06b6d4;" data-color="#06b6d4"></div>
+                <div class="color-swatch" style="background-color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4);"
+                  data-color="#ffffff"></div>
+                <div class="color-swatch"
+                  style="background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);"
+                  data-color="linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Chrome (Chrome system pages) -->
+      <div id="tab-content-chrome" class="tab-content" style="display: none;">
+        <h4 class="tab-subtitle" data-i18n="dialog.chromePages">Páginas del Sistema Chrome</h4>
+        <div class="chrome-pages-list" id="chrome-pages-list">
+          <!-- Predefined chrome:// URLs -->
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button id="dialog-cancel-btn" class="form-btn secondary" data-i18n="dialog.cancel">Cancelar</button>
+        <button id="dialog-save-btn" class="form-btn" data-i18n="dialog.add">Agregar</button>
+      </div>
+    </div>
+  </div>
+  <!-- --- Glassmorphic Modal Dialog for About/Acerca de --- -->
+  <div id="about-dialog" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="about-title"
+    aria-hidden="true" inert>
+    <div class="dialog about-dialog-content">
+      <div class="about-header">
+        <img src="icons/icon128.png" alt="TabLine Logo" data-i18n-alt="about.logoAlt" class="about-logo">
+        <div class="about-title-group">
+          <div class="about-title-row">
+            <h3 id="about-title" class="about-title">TabLine</h3>
+            <span id="about-version" class="about-version"></span>
+          </div>
+          <p class="about-tagline" data-i18n="about.tagline">Una nueva pestaña, en silencio.</p>
+        </div>
+      </div>
+
+      <div class="about-body">
+        <ul class="about-features">
+          <li class="feature-line">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="9" cy="6" r="1.4" />
+                <circle cx="9" cy="12" r="1.4" />
+                <circle cx="9" cy="18" r="1.4" />
+                <circle cx="15" cy="6" r="1.4" />
+                <circle cx="15" cy="12" r="1.4" />
+                <circle cx="15" cy="18" r="1.4" />
+              </svg>
+            </span>
+            <span data-i18n="about.feat1.title">Atajos reordenables con drag &amp; drop</span>
+          </li>
+          <li class="feature-line">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="6" cy="12" r="1.4" />
+                <rect x="10" y="10.6" width="8" height="2.8" rx="1.4" />
+              </svg>
+            </span>
+            <span data-i18n="about.feat2.title">Paginación de atajos con scroll fluido</span>
+          </li>
+          <li class="feature-line">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
+              </svg>
+            </span>
+            <span data-i18n="about.feat3.title">Fondos HD, videos y wallpaper diario</span>
+          </li>
+          <li class="feature-line">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </span>
+            <span data-i18n="about.feat4.title">Atenuación automática en horario nocturno</span>
+          </li>
+          <li class="feature-line">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+              </svg>
+            </span>
+            <span data-i18n="about.feat5.title">Backup y restauración en JSON</span>
+          </li>
+        </ul>
+
+        <hr class="about-divider">
+
+        <section class="about-meta about-shortcuts">
+          <span class="about-meta-label" data-i18n="about.shortcutsLabel">Atajos de teclado</span>
+          <dl class="kbd-list">
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.focusSearch">Enfocar la barra de búsqueda</dd>
+              <dt>
+                <span class="kbd-combo"><kbd>/</kbd></span>
+                <span class="kbd-or" data-i18n="about.or">o</span>
+                <span class="kbd-combo"><kbd>⌘</kbd><kbd>K</kbd></span>
+              </dt>
+            </div>
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.addShortcut">Abrir el modal de nuevo atajo</dd>
+              <dt><span class="kbd-combo"><kbd>⌘</kbd><kbd>N</kbd></span></dt>
+            </div>
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.settings">Abrir/cerrar configuración</dd>
+              <dt><span class="kbd-combo"><kbd>⌘</kbd><kbd>,</kbd></span></dt>
+            </div>
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.paginate">Cambiar de página de atajos</dd>
+              <dt>
+                <span class="kbd-combo"><kbd>←</kbd></span>
+                <span class="kbd-combo"><kbd>→</kbd></span>
+              </dt>
+            </div>
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.close">Cerrar cualquier modal o panel</dd>
+              <dt><span class="kbd-combo"><kbd>Esc</kbd></span></dt>
+            </div>
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.help">Mostrar esta ventana</dd>
+              <dt><span class="kbd-combo"><kbd>?</kbd></span></dt>
+            </div>
+            <div class="kbd-row">
+              <dd data-i18n="about.kbd.renamePage">Nombrar la página activa</dd>
+              <dt><span class="kbd-combo"><kbd data-i18n="about.kbd.doubleClick">Doble clic</kbd></span></dt>
+            </div>
+          </dl>
+        </section>
+
+        <hr class="about-divider">
+
+        <section class="about-meta">
+          <span class="about-meta-label" data-i18n="about.createdBy">Hecho por</span>
+          <div class="about-meta-name">René Sandoval</div>
+          <div class="about-meta-role" data-i18n="about.role">Software Engineer</div>
+          <div class="about-links">
+            <a class="about-link" href="https://renes.dev" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span>renes.dev</span>
+            </a>
+            <a class="about-link" href="mailto:resand91@gmail.com">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-10 6L2 7" />
+              </svg>
+              <span>resand91@gmail.com</span>
+            </a>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="dialog-actions about-actions">
+        <button id="about-close-btn" class="form-btn secondary" data-i18n="about.close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- --- Wallpaper Carousel Bottom Drawer --- -->
+  <div id="wallpaper-drawer" class="bottom-drawer">
+    <div class="bottom-drawer-header">
+      <div class="drawer-tabs" role="tablist">
+        <button class="drawer-tab" role="tab" data-tab="daily" data-i18n="wp.daily">DAILY</button>
+        <button class="drawer-tab" role="tab" data-tab="static" data-i18n="wp.static">STATIC</button>
+        <button class="drawer-tab" role="tab" data-tab="live" data-i18n="wp.live">LIVE VIDEO</button>
+      </div>
+      <button id="close-wallpaper-drawer-btn" class="close-bottom-drawer-btn" data-i18n-title="wp.close" title="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="bottom-drawer-content">
+      <div class="wallpaper-carousel-container" data-active-tab="static">
+        <!-- Daily Panel -->
+        <div class="wallpaper-daily-panel" data-panel="daily">
+          <div class="wallpaper-card daily" id="wp-card-daily">
+            <div class="wp-card-thumb" style="background: linear-gradient(45deg, #09203f 0%, #537895 100%);">
+              <span class="daily-symbol">☼</span>
+            </div>
+            <div class="wp-card-info">
+              <div class="wp-card-name" data-i18n="wp.homeDaily">Home Daily</div>
+              <div class="wp-card-dots">
+                <span class="wp-dot"></span>
+                <span class="wp-dot"></span>
+                <span class="wp-dot"></span>
+                <span class="wp-dot active"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Static List Panel -->
+        <div class="wallpaper-static-panel" id="wallpaper-static-list" data-panel="static">
+          <!-- Curated wallpapers rendered dynamically by JS -->
+        </div>
+
+        <!-- Live Video Panel -->
+        <div class="wallpaper-live-panel" id="wallpaper-live-list" data-panel="live">
+          <!-- Curated videos rendered dynamically by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --- Context Menu Popover --- -->
+  <div id="shortcut-context-menu" class="context-menu">
+    <button id="ctx-open-tab-btn" class="context-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+      <span data-i18n="ctx.openNewTab">Abrir en nueva pestaña</span>
+    </button>
+    <button id="ctx-open-incognito-btn" class="context-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <circle cx="7" cy="16" r="3.5"></circle>
+        <circle cx="17" cy="16" r="3.5"></circle>
+        <path d="M3 10c0-1 1-2 2-2h14c1 0 2 1 2 2"></path>
+        <path d="M10 16h4"></path>
+        <path d="M6 8l2-4h8l2 4"></path>
+      </svg>
+      <span data-i18n="ctx.openIncognito">Abrir en incógnito</span>
+    </button>
+    <button id="ctx-copy-url-btn" class="context-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span data-i18n="ctx.copyUrl">Copiar URL</span>
+    </button>
+    <div class="context-menu-divider"></div>
+    <button id="ctx-edit-btn" class="context-menu-item">
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+      </svg>
+      <span data-i18n="ctx.edit">Editar</span>
+    </button>
+    <button id="ctx-duplicate-btn" class="context-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+      </svg>
+      <span data-i18n="ctx.duplicate">Duplicar</span>
+    </button>
+    <button id="ctx-delete-btn" class="context-menu-item delete">
+      <svg viewBox="0 0 24 24">
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+      </svg>
+      <span data-i18n="ctx.delete">Eliminar</span>
+    </button>
+  </div>
+
+  <!-- Top progress bar shown while navigating to a shortcut -->
+  <div id="nav-progress" class="nav-progress" aria-hidden="true"></div>
+
+  <!-- Toast Notification Overlay -->
+  <div id="toast-notification" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <span id="toast-message">Guardado con éxito</span>
+    <button id="toast-close-btn" class="toast-close" type="button" data-i18n-tooltip="toast.dismiss"
+      aria-label="Dismiss">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+        aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+        <line x1="6" y1="18" x2="18" y2="6"></line>
+      </svg>
+    </button>
+  </div>
+
+  <script src="newtab.js"></script>
+</body>
+
+</html>

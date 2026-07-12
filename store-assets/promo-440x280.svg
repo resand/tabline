@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280">
+  <!-- Background: same surface-0 → surface-1 gradient as the app's dark glass. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#16121d"/>
+      <stop offset="100%" stop-color="#231a2f"/>
+    </linearGradient>
+  </defs>
+  <rect width="440" height="280" fill="url(#bg)"/>
+
+  <!-- Squircle icon (same design as icons/icon.svg, 160px) -->
+  <g transform="translate(40, 60)">
+    <rect width="160" height="160" rx="36" fill="#1a1620" stroke="rgba(196,181,253,0.08)" stroke-width="1"/>
+    <g fill="#c4b5fd" transform="translate(30, 30)">
+      <rect x="0"   y="0"   width="25" height="25" rx="6"/>
+      <rect x="37.5" y="0"   width="25" height="25" rx="6"/>
+      <rect x="75"  y="0"   width="25" height="25" rx="6"/>
+      <rect x="0"   y="37.5" width="25" height="25" rx="6"/>
+      <rect x="37.5" y="37.5" width="25" height="25" rx="6"/>
+      <rect x="75"  y="37.5" width="25" height="25" rx="6"/>
+      <rect x="0"   y="75"  width="25" height="25" rx="6"/>
+      <rect x="37.5" y="75"  width="25" height="25" rx="6"/>
+      <rect x="75"  y="75"  width="25" height="25" rx="6"/>
+    </g>
+  </g>
+
+  <!-- Text block, vertically centered against the icon -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, system-ui, sans-serif">
+    <text x="230" y="135" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-0.8">TabLine</text>
+    <text x="230" y="168" font-size="15" font-weight="400" fill="#c4b5fd" letter-spacing="0.2">A quiet new tab.</text>
+    <text x="230" y="205" font-size="12" font-weight="400" fill="#7a6d8a" letter-spacing="0.3">Clock · Search · Shortcuts</text>
+  </g>
+</svg>

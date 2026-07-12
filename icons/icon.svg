@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Source of truth for the extension icon. Regenerate the PNGs with:
+       rsvg-convert -w <size> -h <size> icons/icon.svg -o icons/icon<size>.png
+       (uses icons/icon-small.svg for sizes <= 24 px). -->
+  <rect width="128" height="128" rx="28" fill="#1a1620"/>
+  <g fill="#c4b5fd">
+    <rect x="24" y="24" width="20" height="20" rx="5"/>
+    <rect x="54" y="24" width="20" height="20" rx="5"/>
+    <rect x="84" y="24" width="20" height="20" rx="5"/>
+    <rect x="24" y="54" width="20" height="20" rx="5"/>
+    <rect x="54" y="54" width="20" height="20" rx="5"/>
+    <rect x="84" y="54" width="20" height="20" rx="5"/>
+    <rect x="24" y="84" width="20" height="20" rx="5"/>
+    <rect x="54" y="84" width="20" height="20" rx="5"/>
+    <rect x="84" y="84" width="20" height="20" rx="5"/>
+  </g>
+</svg>

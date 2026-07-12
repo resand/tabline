@@ -1,0 +1,3166 @@
+/* Material Design 3 + Glassmorphism Design System */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,700&display=swap');
+
+:root {
+  /* ── Accent palette (overridden by JS via applyAccentPalette). Default
+     titanium-gray ensures first paint has a valid value before JS runs. ── */
+  --accent: 215 8% 48%;
+
+  /* ── MD3 Color System (Dark Scheme) ──
+     All "primary" tokens derive from `--accent` so every consumer of the MD3
+     primary family follows the active theme. Uses relative color syntax
+     (Chrome 119+) to compute the tonal container variants from a single HSL
+     triple, so no JS-side palette duplication is needed. */
+  --md-sys-color-primary: hsl(var(--accent));
+  --md-sys-color-on-primary: hsl(from hsl(var(--accent)) h s calc(l - 60));
+  --md-sys-color-primary-container: hsl(from hsl(var(--accent)) h s calc(l - 50));
+  --md-sys-color-on-primary-container: hsl(from hsl(var(--accent)) h s calc(l + 5));
+  --md-sys-color-secondary: #CCC2DC;
+  --md-sys-color-on-secondary: #332D41;
+  --md-sys-color-secondary-container: #4A4458;
+  --md-sys-color-tertiary: #EFB8C8;            /* Pink tonal */
+  --md-sys-color-on-tertiary: #492532;
+  --md-sys-color-surface: rgba(26, 24, 34, 0.72);
+  --md-sys-color-surface-container: rgba(31, 28, 40, 0.90);
+  --md-sys-color-surface-container-high: rgba(40, 36, 52, 0.94);
+  --md-sys-color-on-surface: #E6E1E5;
+  --md-sys-color-on-surface-variant: #CAC4D0;
+  --md-sys-color-outline: rgba(147, 143, 153, 0.35);
+  --md-sys-color-outline-variant: rgba(73, 69, 79, 0.6);
+  --md-sys-color-error: #F2B8B8;
+  --md-sys-color-on-error: #601410;
+  --md-sys-color-scrim: rgba(0, 0, 0, 0.72);
+
+  /* ── MD3 Elevation Tints (violet tint on surface) ── */
+  --md-elevation-1: hsla(var(--accent), 0.05);   /* level 1 */
+  --md-elevation-2: hsla(var(--accent), 0.08);   /* level 2 */
+  --md-elevation-3: hsla(var(--accent), 0.11);   /* level 3 */
+
+  /* ── MD3 Shape Scale ── */
+  --md-shape-none: 0px;
+  --md-shape-extra-small: 4px;
+  --md-shape-small: 8px;
+  --md-shape-medium: 12px;
+  --md-shape-large: 16px;
+  --md-shape-extra-large: 28px;
+  --md-shape-full: 50px;
+
+  /* ── MD3 Typescale ── */
+  --md-font: 'Roboto Flex', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-display-large:   57px;
+  --md-display-medium: 45px;
+  --md-headline-large:  32px;
+  --md-headline-medium: 28px;
+  --md-headline-small:  24px;
+  --md-title-large:     22px;
+  --md-title-medium:    16px;
+  --md-title-small:     14px;
+  --md-body-large:      16px;
+  --md-body-medium:     14px;
+  --md-label-large:     14px;
+  --md-label-medium:    12px;
+  --md-label-small:     11px;
+
+  /* ── Legacy aliases (keep glassmorphism working) ── */
+  --bg-base: 224 71% 4%;
+  --bg-gradient: radial-gradient(ellipse at 10% 20%, hsla(var(--accent), 0.12) 0%, transparent 55%),
+                 radial-gradient(ellipse at 90% 80%, hsla(var(--accent), 0.08) 0%, transparent 55%),
+                 radial-gradient(circle at 50% 50%, hsla(var(--accent), 0.10) 0%, transparent 70%),
+                 linear-gradient(160deg, #0d0b12 0%, #0f0c18 50%, #130a1e 100%);
+  /* (`--accent` is declared at the top of :root so MD3 tokens can derive from it.) */
+  --text-main: 270 14% 90%;       /* --md-sys-color-on-surface approx */
+  --text-muted: 270 8% 64%;       /* --md-sys-color-on-surface-variant approx */
+
+  /* Glassmorphism */
+  --glass-bg: rgba(30, 28, 40, 0.5);
+  --glass-border: hsla(var(--accent), 0.1);
+  --glass-highlight: hsla(var(--accent), 0.04);
+  --glass-bg-hover: hsla(var(--accent), 0.1);
+  --shadow-depth: 0 8px 32px -8px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0,0,0,0.3);
+
+  /* ── Layered depth (glass premium) ── */
+  /* Level 1: floating surfaces (cards, search bar) */
+  --glass-1-bg: rgba(30, 28, 40, 0.52);
+  --glass-1-blur: blur(14px) saturate(150%);
+  --glass-1-border: hsla(var(--accent), 0.1);
+  --glass-1-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.66),
+                    inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
+  /* Level 2: elevated surfaces (settings drawer, dialogs) */
+  --glass-2-bg: rgba(26, 24, 34, 0.86);
+  --glass-2-blur: blur(28px) saturate(160%);
+  --glass-2-border: hsla(var(--accent), 0.12);
+  --glass-2-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.7),
+                    inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+
+  /* ── Motion ── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-1: 120ms;   /* hover / press */
+  --dur-2: 200ms;   /* cambios de estado */
+  --dur-3: 320ms;   /* drawers and dialogs */
+
+  /* Legacy shape aliases → MD3 shape */
+  --radius-lg: var(--md-shape-extra-large);  /* 28px */
+  --radius-md: var(--md-shape-large);        /* 16px */
+  --radius-sm: var(--md-shape-medium);       /* 12px */
+
+  --font-primary: var(--md-font);
+  --transition-smooth: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); /* snappy ease-out */
+  --transition-emphasized: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Shortcut icon corner radius (0% = square, 25% = squircle, 50% = circle) */
+  --icon-radius: 25%;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-primary);
+  color: hsl(var(--text-main));
+  background: var(--bg-gradient);
+  height: 100vh;
+  overflow: hidden; /* prevent page scroll; inner scroll handled per section */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.5rem 4rem 0; /* no bottom padding — footer is fixed */
+  position: relative;
+  gap: 0;
+}
+
+/* Background image system with smooth fade-in */
+.bg-image-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: opacity 1s ease-in-out, filter 0.5s ease;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.bg-image-wrapper video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 1s ease-in-out;
+  opacity: 0;
+  will-change: opacity;
+  transform: translateZ(0); /* Hardware acceleration trigger */
+}
+
+.bg-image-wrapper.loaded {
+  opacity: 1;
+}
+
+.bg-image-wrapper.dimmed {
+  filter: brightness(0.4) contrast(1.1);
+}
+
+/* Animated gradient: slowly flowing violet */
+.bg-image-wrapper.gradient-animated {
+  background: linear-gradient(125deg,
+    #150b22 0%,
+    #2d1b4e 22%,
+    #4a2570 40%,
+    #6d3a9e 52%,
+    #4a2570 64%,
+    #2d1b4e 82%,
+    #130a1e 100%);
+  background-size: 300% 300%;
+  animation: gradientFlow 20s ease-in-out infinite;
+}
+
+@keyframes gradientFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: radial-gradient(ellipse at center, transparent 24%, rgba(0, 0, 0, 0.6) 100%),
+              linear-gradient(180deg, rgba(0, 0, 0, 0.32) 0%, transparent 24%,
+                              transparent 76%, rgba(0, 0, 0, 0.36) 100%);
+  pointer-events: none;
+}
+
+/* --- Right Sidebar vertical panel --- */
+.sidebar-right {
+  position: fixed;
+  right: 1.25rem;
+  top: 0;
+  height: 100vh;
+  width: auto;
+  background: none;
+  border-right: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3rem 0;
+  z-index: 950;
+  box-shadow: none;
+}
+
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  width: 100%;
+}
+
+/* MD3 IconButton */
+.sidebar-btn {
+  background: none;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-full); /* MD3 icon buttons are circular */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  position: relative;
+  /* No overflow:hidden — the tonal ::before already inherits border-radius,
+     and the tooltip ::after needs to render outside the button. */
+}
+
+.sidebar-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-sys-color-primary);
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-btn:hover::before  { opacity: 0.08; }
+.sidebar-btn:active::before { opacity: 0.12; }
+
+.sidebar-btn:hover {
+  color: var(--md-sys-color-primary);
+  transform: none;
+}
+
+.sidebar-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  transition: color var(--transition-smooth);
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Layout Structure --- */
+header {
+  display: none; /* Replaced by sidebar-right */
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  /* Wider canvas so the bento has more horizontal room — icons can spread
+     out and tall groups don't have to stack as many rows vertically. */
+  max-width: 1200px;
+  margin: auto;
+  gap: 1rem;
+  z-index: 5;
+  box-sizing: border-box;
+  /* Breathing room from Chrome's native bottom UI (bookmark bar / suggestions).
+     Scales down on short viewports so the 3-row grid doesn't get clipped. */
+  padding-bottom: clamp(12px, 2.5vh, 28px);
+  /* Fill available viewport height */
+  height: calc(100vh - 3rem);
+  /* Keep the children clipped so a tight viewport can't push the clock into the grid.
+     The side FAB lives outside main (position: fixed), so it isn't affected. */
+  overflow: hidden;
+}
+
+/* --- Clock and Date Component --- */
+.clock-container {
+  text-align: center;
+  animation: fadeInDown 0.4s var(--ease-out);
+  background: var(--glass-2-bg);
+  border: 1px solid var(--glass-2-border);
+  backdrop-filter: var(--glass-2-blur);
+  -webkit-backdrop-filter: var(--glass-2-blur);
+  /* Padding shrinks on short viewports so the clock doesn't crowd the grid. */
+  padding: clamp(0.5rem, 1.6vh, 1.5rem) clamp(1.25rem, 4vw, 3.5rem);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-2-shadow);
+  transition: var(--transition-smooth);
+}
+
+.clock-container:hover {
+  border-color: hsla(var(--accent), 0.28);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.clock-time {
+  /* 9vh hits ~6rem at a 1080px-tall viewport (fullscreen) and gracefully shrinks
+     to ~2.4rem on short windows. */
+  font-size: clamp(2.4rem, 9vh, 6rem);
+  font-weight: 300;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: oklch(0.96 0.008 300);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  font-variant-numeric: tabular-nums; /* digits don't shift when the time changes */
+}
+
+.clock-date {
+  font-size: clamp(0.8rem, 1.4vh, 1.1rem);
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: hsl(var(--text-muted));
+  margin-top: clamp(0.2rem, 0.5vh, 0.5rem);
+  text-transform: capitalize;
+}
+
+/* --- Search Engine & Bar Component --- */
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+
+.search-bar-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--glass-2-bg); /* cristal oscuro premium */
+  border: 1px solid var(--glass-2-border);
+  border-radius: 16px;
+  padding: 11px 14px 11px 20px;
+  box-shadow: var(--glass-2-shadow);
+  backdrop-filter: var(--glass-2-blur);
+  -webkit-backdrop-filter: var(--glass-2-blur);
+  transition: border-color var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out),
+              transform var(--dur-2) var(--ease-out);
+}
+
+.search-bar-wrapper:focus-within {
+  border-color: hsla(var(--accent), 0.7);
+  /* Inset highlight: stays inside the box so it isn't clipped by the
+     parent's overflow:hidden (the top border used to get cut off). */
+  box-shadow: var(--glass-2-shadow),
+              inset 0 0 0 1px hsla(var(--accent), 0.3),
+              inset 0 1px 26px hsla(var(--accent), 0.09);
+}
+
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-primary);
+  font-size: 1.1rem;
+  color: var(--md-sys-color-on-surface);
+  width: 100%;
+}
+
+.search-input::placeholder {
+  color: hsla(var(--text-muted), 0.7);
+  font-weight: 400;
+}
+
+.search-btn {
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: hsl(var(--text-muted));
+  transition: var(--transition-smooth);
+  box-shadow: none;
+}
+
+.search-btn:hover {
+  transform: scale(1.1);
+  color: var(--md-sys-color-primary);
+  box-shadow: none;
+}
+
+.search-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+/* --- Shortcuts Component (Grid) --- */
+.shortcuts-section {
+  position: relative;
+  width: 100%;
+  /* Wider than the legacy 1000px so the bento has breathing room: 7 columns
+     of ~155px tracks instead of ~135px lets icons keep their max size while
+     leaving comfortable gutters. Icons themselves are still clamped, so we
+     never grow past their intended 100-112px ceiling. */
+  max-width: 1180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: fadeInUp 0.4s var(--ease-out) both;
+  flex: 1;
+  min-height: 0;
+  /* Clip the grid so it can't bleed into the clock when the viewport gets short.
+     The side FAB is position:fixed so it stays visible regardless. */
+  overflow: hidden;
+}
+
+.shortcuts-grid-container {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* Center the grid vertically inside its flex slot so when there are
+     fewer rows than the budget allows, the icons sit comfortably in the
+     middle of the page instead of pinned to the top with dead space below. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.shortcuts-grid {
+  display: grid;
+  /* minmax(0, 1fr) prevents the columns from overflowing the container
+     when the content (fixed icon) is wider than the track. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* Gap scales with viewport so the icons fit without scrolling. */
+  --grid-col-gap: clamp(0.4rem, 1vw, 1rem);
+  --grid-row-gap: clamp(0.4rem, 1.2vh, 1rem);
+  gap: var(--grid-row-gap) var(--grid-col-gap);
+  width: 100%;
+  min-height: 120px;
+  transition: var(--transition-smooth);
+  padding-bottom: clamp(2px, 0.6vh, 8px);
+}
+
+
+/* --- Loading skeleton (visible while storage resolves on first render) --- */
+.shortcut-skeleton {
+  width: 100%;
+  max-width: clamp(40px, 9vh, 100px);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: var(--icon-radius);
+  background: linear-gradient(110deg,
+    hsla(0, 0%, 100%, 0.04) 8%,
+    hsla(0, 0%, 100%, 0.10) 18%,
+    hsla(0, 0%, 100%, 0.04) 33%);
+  background-size: 200% 100%;
+  animation: shortcutSkeletonShimmer 1.4s ease-in-out infinite;
+  border: 1px solid hsla(0, 0%, 100%, 0.04);
+}
+
+@keyframes shortcutSkeletonShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Page flip animation (carousel feel) ──
+   Apple-style spring easing + larger displacement + subtle depth via scale.
+   GPU-accelerated (transform + opacity only). */
+@keyframes shortcutsSlideInRight {
+  0%   { opacity: 0; transform: translate3d(56px, 0, 0) scale(0.97); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes shortcutsSlideInLeft {
+  0%   { opacity: 0; transform: translate3d(-56px, 0, 0) scale(0.97); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+.shortcuts-grid.flip-next,
+.shortcuts-grid.flip-prev {
+  /* cubic-bezier(0.32, 0.72, 0, 1) — Apple's standard "spring out" curve. */
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+.shortcuts-grid.flip-next { animation-name: shortcutsSlideInRight; }
+.shortcuts-grid.flip-prev { animation-name: shortcutsSlideInLeft; }
+
+.shortcut-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.25rem, 0.8vh, 0.75rem);
+  text-decoration: none;
+  color: inherit; /* neutralize the default <a> blue */
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition-smooth);
+  border-radius: var(--radius-md);
+  padding: clamp(0.3rem, 0.8vh, 0.75rem) clamp(0.2rem, 0.4vw, 0.5rem);
+}
+
+.shortcut-card:hover {
+  background: var(--glass-bg-hover);
+  transform: translateY(-5px);
+}
+
+/* Drop target highlight while another card is being dragged over this one
+   (set by handleDragMove). Accent ring + subtle outer glow so the user can
+   see exactly where the icon will land. */
+.shortcut-card.drop-target .shortcut-icon-wrapper {
+  box-shadow:
+    0 0 0 2px hsl(var(--accent)),
+    0 0 18px hsla(var(--accent), 0.55);
+  transform: scale(1.04);
+  transition: transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+.shortcut-card:active {
+  transform: translateY(-1px);
+  transition-duration: var(--dur-1);
+}
+
+.shortcut-icon-wrapper {
+  position: relative;
+  /* Responsive: caps at 112px in full-height windows, shrinks aggressively
+     on short viewports so the 3 rows + clock + search can coexist without
+     clipping. 10vh ≈ 108px at 1080px tall (close to the cap) and ~85px at
+     850px tall (room for the third row to render fully). */
+  width: 100%;
+  max-width: clamp(40px, 9vh, 100px);
+  aspect-ratio: 1 / 1;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-1-border);
+  border-radius: var(--icon-radius); /* driven by the Settings slider */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--glass-1-shadow); /* glass level 1: drop shadow + top highlight */
+  backdrop-filter: var(--glass-1-blur);
+  -webkit-backdrop-filter: var(--glass-1-blur);
+  transition: transform var(--dur-1) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out);
+  overflow: hidden;
+}
+
+.shortcut-card:hover .shortcut-icon-wrapper {
+  /* Triple-shadow stack: depth (black), accent halo, top inner highlight.
+     The accent halo is what gives the lift its "branded" feel. */
+  box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.55),
+              0 8px 24px -8px hsla(var(--accent), 0.45),
+              0 0 0 1px hsla(var(--accent), 0.35),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.09);
+  transform: scale(1.03);
+}
+
+.shortcut-card:active .shortcut-icon-wrapper {
+  transform: scale(0.97);
+  transition-duration: var(--dur-1);
+}
+
+/* ── Progress bar shown when opening a shortcut ── */
+.nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 0.15s ease;
+}
+
+.nav-progress.active {
+  opacity: 1;
+}
+
+.nav-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent,
+              var(--md-sys-color-primary) 50%, transparent);
+  transform: translateX(-120%);
+}
+
+.nav-progress.active::before {
+  animation: navProgress 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes navProgress {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(320%); }
+}
+
+/* Launching state — the user clicked the icon, the browser is about to
+   navigate. We give big, obvious "charging" feedback: scale lift, fast
+   pulsing accent ring, and a ripple shockwave expanding from the icon
+   center. All contained inside the wrapper (overflow: hidden) so nothing
+   spills into the neighbors. */
+.shortcut-card.is-launching {
+  /* Lift the whole card a little extra so the animated icon never gets
+     visually clipped by adjacent rows. */
+  z-index: 5;
+}
+
+.shortcut-card.is-launching .shortcut-icon-wrapper {
+  transform: scale(1.16);
+  animation: shortcutLaunchPulse 0.55s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes shortcutLaunchPulse {
+  0% {
+    box-shadow:
+      0 0 0 2px hsl(var(--accent)),
+      0 0 18px hsla(var(--accent), 0.5),
+      0 14px 32px -6px rgba(0, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px hsla(var(--accent), 0.85),
+      0 0 44px hsla(var(--accent), 0.9),
+      0 14px 32px -6px rgba(0, 0, 0, 0.6);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px hsl(var(--accent)),
+      0 0 18px hsla(var(--accent), 0.5),
+      0 14px 32px -6px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Brighten the icon image during launch so it visually "lights up". */
+.shortcut-card.is-launching .shortcut-icon-wrapper img,
+.shortcut-card.is-launching .shortcut-fallback-icon {
+  filter: brightness(1.18) saturate(1.1);
+  transition: filter 0.15s ease;
+}
+
+/* Ripple shockwave that expands from the icon center — sits behind the
+   image (z-index 0) but above the wrapper background. Repeats so the
+   user catches at least one full ring before the page navigates. */
+.shortcut-card.is-launching .shortcut-icon-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  background: hsla(var(--accent), 0.5);
+  transform: scale(0);
+  animation: shortcutLaunchRipple 0.55s ease-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes shortcutLaunchRipple {
+  0%   { transform: scale(0);   opacity: 0.7; }
+  60%  { opacity: 0.4; }
+  100% { transform: scale(7);   opacity: 0; }
+}
+
+/* Diagonal shimmer sweeping across the icon — sits above the image so
+   it reads as a "swept light" pass. */
+.shortcut-card.is-launching .shortcut-icon-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    hsla(0, 0%, 100%, 0.32) 50%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: shortcutLaunchShimmer 0.55s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes shortcutLaunchShimmer {
+  0%   { background-position: 220% 0; }
+  100% { background-position: -120% 0; }
+}
+
+/* Respect prefers-reduced-motion — drop animations, keep static accent ring. */
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-card.is-launching .shortcut-icon-wrapper {
+    animation: none;
+    transform: scale(1.06);
+    box-shadow:
+      0 0 0 3px hsl(var(--accent)),
+      0 0 22px hsla(var(--accent), 0.6),
+      0 14px 32px -6px rgba(0, 0, 0, 0.6);
+  }
+  .shortcut-card.is-launching .shortcut-icon-wrapper::before,
+  .shortcut-card.is-launching .shortcut-icon-wrapper::after {
+    animation: none;
+    display: none;
+  }
+  .shortcut-card.is-launching .shortcut-icon-wrapper img,
+  .shortcut-card.is-launching .shortcut-fallback-icon {
+    filter: none;
+  }
+}
+
+/* Icon shape is driven by --icon-radius (slider in Settings) */
+
+.shortcut-icon-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Prevent stretching and crop */
+  padding: 14px; /* Center-pad logo elegantly */
+  box-sizing: border-box;
+  border-radius: var(--icon-radius);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(var(--icon-zoom, 1));
+}
+
+.shortcut-card:hover .shortcut-icon-wrapper img {
+  transform: scale(calc(var(--icon-zoom, 1) * 1.05));
+}
+
+/* Fallback letter-icon inside glass wrapper */
+.shortcut-fallback-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem; /* Proportionate font size for 112px */
+  font-weight: 600;
+  text-transform: uppercase;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: var(--transition-smooth);
+}
+
+.shortcut-card:hover .shortcut-fallback-icon {
+  transform: scale(1.08);
+}
+
+.shortcut-title {
+  font-size: clamp(0.7rem, 1.5vh, 0.85rem);
+  font-weight: 600;
+  text-align: center;
+  color: hsl(var(--text-main));
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Dark halo: keeps the text legible over any wallpaper */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 0, 0, 0.35);
+}
+
+/* MD3 Tonal Icon Button for shortcut options */
+.shortcut-menu-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  /* MD3 Tonal style: primary container tint, derived from the active accent. */
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 75%, transparent);
+  border: 1px solid hsla(var(--accent), 0.3);
+  border-radius: var(--md-shape-full);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.8) translateY(-2px);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+              background 0.15s ease;
+  cursor: pointer;
+  z-index: 15;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.shortcut-card:hover .shortcut-menu-btn {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.shortcut-menu-btn:hover {
+  background: hsla(var(--accent), 0.85);
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 12px hsla(var(--accent), 0.4);
+}
+
+.shortcut-menu-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: var(--md-sys-color-primary);
+  transition: fill 0.15s ease;
+}
+
+.shortcut-menu-btn:hover svg {
+  fill: var(--md-sys-color-on-primary);
+}
+
+/* ── Live drag-sort reordering ── */
+.shortcut-card {
+  cursor: grab;
+  touch-action: none;        /* prevent the browser from hijacking the gesture on touch */
+  -webkit-user-drag: none;   /* desactiva el arrastre nativo */
+}
+
+/* Browsers let images be dragged natively, which cancels the reorder
+   pointer events. Disable it explicitly. */
+.shortcut-card img,
+.shortcut-card .shortcut-fallback-icon {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* "Lifted" card while being dragged: floats above the rest */
+.shortcut-card.lifted {
+  z-index: 100;
+  cursor: grabbing;
+}
+
+.shortcut-card.lifted .shortcut-icon-wrapper {
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+}
+
+.shortcut-card.lifted .shortcut-menu-btn {
+  opacity: 0 !important;
+}
+
+/* The other cards slide smoothly to make room */
+.shortcuts-grid.is-reordering .shortcut-card {
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* While reordering, suppress the hover highlight so cards don't "jump" */
+.shortcuts-grid.is-reordering .shortcut-card:hover {
+  background: transparent;
+}
+
+.shortcuts-grid.is-reordering .shortcut-card:hover .shortcut-icon-wrapper {
+  transform: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.shortcuts-grid.is-reordering .shortcut-card:hover .shortcut-menu-btn {
+  opacity: 0;
+}
+
+/* --- Empty state: centered CTA when there are zero shortcuts --- */
+.shortcuts-empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  min-height: 320px;
+  background: var(--glass-1-bg);
+  border: 2px dashed hsla(var(--accent), 0.35);
+  border-radius: var(--md-shape-large, 24px);
+  cursor: pointer;
+  color: hsl(var(--text-main));
+  backdrop-filter: var(--glass-1-blur);
+  -webkit-backdrop-filter: var(--glass-1-blur);
+  transition: transform var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              background var(--dur-2) var(--ease-out);
+  animation: fadeInUp var(--dur-3) var(--ease-out) both;
+}
+
+.shortcuts-empty-state:hover {
+  border-color: hsla(var(--accent), 0.7);
+  background: hsla(var(--accent), 0.06);
+  transform: translateY(-2px);
+}
+
+.shortcuts-empty-state:active {
+  transform: translateY(0);
+}
+
+.shortcuts-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: hsla(var(--accent), 0.15);
+  border: 1px solid hsla(var(--accent), 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--accent));
+  margin-bottom: 0.5rem;
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.shortcuts-empty-state:hover .shortcuts-empty-icon {
+  transform: scale(1.08);
+}
+
+.shortcuts-empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.shortcuts-empty-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.shortcuts-empty-subtitle {
+  font-size: 0.9rem;
+  color: hsl(var(--text-muted));
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Sidebar tooltip (custom, no native title flash). Read from data-tooltip
+   set by applyI18n(). Anchored to the left of the button. --- */
+.sidebar-btn[data-tooltip] {
+  position: relative;
+}
+
+.sidebar-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(6px);
+  background: rgba(20, 18, 28, 0.92);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.15px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease-out),
+              transform var(--dur-2) var(--ease-out);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+}
+
+.sidebar-btn[data-tooltip]:hover::after,
+.sidebar-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  transition-delay: 120ms; /* small delay so it doesn't pop on accidental fly-by */
+}
+
+/* --- Primary "+" in the sidebar: accent fill so the main action reads first --- */
+.add-shortcut-btn-primary {
+  background: hsl(var(--accent)) !important;
+  color: var(--md-sys-color-on-primary, #2a1352) !important;
+  filter: drop-shadow(0 4px 10px hsla(var(--accent), 0.4)) !important;
+}
+
+.add-shortcut-btn-primary::before {
+  display: none; /* skip the tonal hover overlay used by outlined sidebar btns */
+}
+
+.add-shortcut-btn-primary:hover {
+  background: hsl(var(--accent)) !important;
+  filter: drop-shadow(0 6px 16px hsla(var(--accent), 0.55)) brightness(1.08) !important;
+  transform: scale(1.06) !important;
+}
+
+.add-shortcut-btn-primary:active {
+  transform: scale(0.96) !important;
+}
+
+/* --- Pagination Dots --- */
+.pagination-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1rem;
+  /* Subtle glass pill so the dots always read against any wallpaper. */
+  padding: 8px 14px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Hide the pill (and its background) when there's only one page → no dots inside. */
+.pagination-dots:empty {
+  display: none;
+}
+
+/* During shortcut drag, the whole bar pulses subtly to advertise "drop here
+   to move to another page", and the hovered tab gets an accent ring. */
+.pagination-dots.drop-target-active {
+  box-shadow:
+    0 0 0 1px hsla(var(--accent), 0.35),
+    0 0 18px hsla(var(--accent), 0.3);
+  animation: paginationDropPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes paginationDropPulse {
+  0%, 100% { box-shadow: 0 0 0 1px hsla(var(--accent), 0.3), 0 0 14px hsla(var(--accent), 0.22); }
+  50%      { box-shadow: 0 0 0 1px hsla(var(--accent), 0.5), 0 0 22px hsla(var(--accent), 0.42); }
+}
+
+.pagination-dots [data-page-index].drop-hover {
+  box-shadow:
+    0 0 0 2px hsl(var(--accent)),
+    0 0 16px hsla(var(--accent), 0.55);
+  transform: scale(1.1);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.dot:hover {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.15);
+}
+
+.dot.active {
+  width: 28px;
+  border-radius: 999px;
+  background: hsl(var(--accent));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 0 14px hsla(var(--accent), 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Labeled page tabs ---
+   When a page has a name (settings.pageLabels[i]) the dot becomes a text pill.
+   Lives in the same glass pill as the dots; the two render side by side. */
+.page-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font: 500 11px/1 var(--font-ui, system-ui, sans-serif);
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  transition: var(--transition-smooth);
+}
+
+.page-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.page-tab.active {
+  background: hsl(var(--accent));
+  border-color: hsla(var(--accent), 0.85);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 0 14px hsla(var(--accent), 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.page-tab.active:hover {
+  /* Don't lift the active tab on hover — feels twitchy in a small bar. */
+  transform: none;
+}
+
+/* Inline rename: the tab itself becomes a slim input. The element always
+   gets the .page-tab base class (even if it was a dot before) so the input
+   has a properly sized container instead of overflowing a 9px dot. */
+.page-tab.editing {
+  padding: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border-color: hsla(var(--accent), 0.75);
+  box-shadow: 0 0 0 2px hsla(var(--accent), 0.22);
+  cursor: text;
+  /* Don't lift on hover while editing; the input handles its own focus state. */
+  transform: none !important;
+}
+
+.page-tab.editing.active {
+  /* When renaming an active tab, drop the accent fill so the input contrast
+     stays high. The accent is preserved via border + ring. */
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.page-tab-input {
+  display: block;
+  width: 120px;
+  height: 22px;
+  padding: 0 10px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font: 500 11px/1 var(--font-ui, system-ui, sans-serif);
+  letter-spacing: 0.02em;
+  caret-color: hsl(var(--accent));
+  /* Override the global user-select: none so the user can select the text. */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.page-tab-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.page-tab-input::selection {
+  background: hsla(var(--accent), 0.45);
+  color: #fff;
+}
+
+/* --- Navigation & Control Buttons --- */
+.control-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--text-main));
+  cursor: pointer;
+  box-shadow: var(--shadow-depth);
+  backdrop-filter: blur(20px);
+  transition: var(--transition-smooth);
+}
+
+.control-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: hsla(var(--accent), 0.5);
+  color: hsl(var(--accent));
+  transform: scale(1.08);
+}
+
+.control-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* --- Popover Context Menu (Edit/Delete Shortcut) --- */
+.context-menu {
+  position: absolute;
+  background: var(--glass-2-bg);
+  border: 1px solid var(--glass-2-border);
+  border-radius: var(--md-shape-medium);
+  padding: 6px;
+  box-shadow: var(--glass-2-shadow);
+  backdrop-filter: var(--glass-2-blur);
+  -webkit-backdrop-filter: var(--glass-2-blur);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 120;
+  width: 160px;
+  animation: popoverReveal 0.2s var(--ease-out);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: 1px solid transparent;
+  color: hsl(var(--text-main));
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-out),
+              border-color var(--dur-1) var(--ease-out),
+              color var(--dur-1) var(--ease-out);
+}
+
+.context-menu-item:hover,
+.context-menu-item:focus-visible {
+  background: hsla(var(--accent), 0.18);
+  border-color: hsla(var(--accent), 0.35);
+  color: white;
+  outline: none;
+}
+
+.context-menu-item:hover svg,
+.context-menu-item:focus-visible svg {
+  color: hsl(var(--accent));
+}
+
+.context-menu-item.delete {
+  color: #ff5555;
+}
+
+.context-menu-item.delete:hover,
+.context-menu-item.delete:focus-visible {
+  background: rgba(255, 85, 85, 0.18);
+  border-color: rgba(255, 85, 85, 0.4);
+  color: #ff7777;
+}
+
+.context-menu-item.delete:hover svg,
+.context-menu-item.delete:focus-visible svg {
+  color: #ff5555;
+}
+
+.context-menu-item svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* Outline icons (Open in new tab, Copy URL) use stroke instead of fill. */
+.context-menu-item svg[stroke] {
+  fill: none;
+  stroke: currentColor;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: var(--glass-2-border, rgba(255, 255, 255, 0.08));
+  margin: 4px 6px;
+}
+
+/* --- MD3 Modal Side Sheet (Settings Drawer) --- */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: -420px;
+  width: 400px;
+  height: 100vh;
+  /* MD3 Surface Container + elevation tint level-2 */
+  background: linear-gradient(180deg,
+    rgba(33, 31, 38, 0.96) 0%,
+    rgba(28, 27, 31, 0.96) 100%);
+  background-blend-mode: normal;
+  border-left: 1px solid var(--md-sys-color-outline);
+  box-shadow: -4px 0 16px rgba(0,0,0,0.5), -1px 0 4px rgba(0,0,0,0.3);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  z-index: 1000;
+  padding: 2.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  transition: right var(--transition-emphasized);
+}
+
+.drawer.active {
+  right: 0;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding-bottom: 1rem;
+}
+
+.drawer-title {
+  /* MD3 Headline Small */
+  font-size: var(--md-headline-small);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--md-sys-color-on-surface);
+  -webkit-text-fill-color: var(--md-sys-color-on-surface);
+}
+
+.close-drawer-btn {
+  background: none;
+  border: none;
+  color: hsl(var(--text-muted));
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-drawer-btn:hover {
+  background: var(--glass-bg-hover);
+  color: white;
+  transform: rotate(90deg);
+}
+
+.close-drawer-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Each settings section is a card */
+.settings-section {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--md-shape-large);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-section .form-group {
+  margin-bottom: 0;
+}
+
+/* Custom Scrollbar for Drawer & Overflows */
+.drawer-content::-webkit-scrollbar,
+textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.drawer-content::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drawer-content::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  transition: var(--transition-smooth);
+}
+
+.drawer-content::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Form Styles inside Drawer & Modals */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: hsl(var(--text-muted));
+  letter-spacing: 0.3px;
+}
+
+/* MD3 OutlinedTextField */
+.form-input,
+.form-select,
+.form-textarea {
+  /* "Filled" field with a full uniform border on all four sides */
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--md-shape-medium);
+  padding: 12px 16px;
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-font);
+  font-size: var(--md-body-large);
+  outline: none;
+  transition: border-color var(--dur-2) var(--ease-out),
+              background var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out);
+  width: 100%;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: hsla(var(--accent), 0.55);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 3px hsla(var(--accent), 0.12);
+}
+
+.form-select option {
+  background: #1c1b1f;
+  color: var(--md-sys-color-on-surface);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* ── MD3 Switch ── */
+.toggle-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* MD3 Switch track */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--md-sys-color-surface-container-high);
+  border: 2px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-full);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* MD3 Switch thumb */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--md-sys-color-outline);
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1),
+              width 0.1s ease, height 0.1s ease, background-color 0.2s ease;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+}
+
+input:checked + .slider:before {
+  background-color: var(--md-sys-color-on-primary);
+  transform: translateX(20px) translateY(-50%);
+  width: 24px;
+  height: 24px;
+  left: 2px;
+}
+
+input:focus-visible + .slider {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Dim background at night ── */
+.dim-night-block {
+  margin-top: 8px;
+}
+
+.setting-subtitle {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: hsla(var(--text-muted), 0.75);
+  margin-top: 2px;
+}
+
+/* Live status line (daytime / night) */
+.dim-night-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.dim-night-status:empty {
+  display: none;
+}
+
+.dim-night-status.is-day {
+  color: #ffce7a;
+  background: rgba(255, 206, 122, 0.1);
+}
+
+.dim-night-status.is-night {
+  color: var(--md-sys-color-primary);
+  background: hsla(var(--accent), 0.12);
+}
+
+.dim-night-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Collapsible schedule: only shown when the option is enabled */
+.dim-night-options {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.2, 0, 0, 1),
+              opacity 0.25s ease,
+              margin-top 0.3s ease;
+}
+
+.dim-night-options.expanded {
+  max-height: 130px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.time-range {
+  display: flex;
+  gap: 12px;
+}
+
+.time-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.time-field > span {
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
+  color: hsl(var(--text-muted));
+}
+
+.time-input {
+  /* hereda de .form-input; renderiza el selector nativo en tema oscuro */
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+/* --- MD3 FilledButton / OutlinedButton --- */
+.form-btn {
+  /* MD3 Filled Button */
+  background: var(--md-sys-color-primary-container);
+  border: none;
+  border-radius: var(--md-shape-full);
+  color: var(--md-sys-color-on-primary-container);
+  font-family: var(--md-font);
+  font-size: var(--md-label-large);
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 0 transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  position: relative;
+  overflow: hidden;
+}
+
+.form-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-sys-color-on-primary-container);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: inherit;
+}
+
+.form-btn:hover::before  { opacity: 0.08; }
+.form-btn:active::before { opacity: 0.12; }
+
+/* Icon and label sit above the state veil (::before) */
+.form-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.form-btn span {
+  position: relative;
+  z-index: 1;
+}
+
+.form-btn:hover {
+  box-shadow: 0 3px 8px rgba(0,0,0,0.45);
+}
+
+/* Disabled state — applies to every variant (primary, secondary, danger). */
+.form-btn:disabled,
+.form-btn[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+  filter: grayscale(0.2);
+}
+
+.form-btn:disabled::before,
+.form-btn[disabled]::before {
+  display: none;
+}
+
+.form-btn.secondary {
+  /* MD3 Tonal Button */
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-primary);
+  box-shadow: none;
+  border-radius: var(--md-shape-full);
+}
+
+.form-btn.secondary::before {
+  background: var(--md-sys-color-primary);
+}
+
+.form-btn.secondary:hover {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: none;
+}
+
+/* MD3 Error/Danger button variant */
+.form-btn.danger {
+  background: rgba(242, 184, 184, 0.12);
+  border: 1px solid rgba(242, 184, 184, 0.35);
+  color: var(--md-sys-color-error);
+  box-shadow: none;
+  border-radius: var(--md-shape-full);
+}
+
+.form-btn.danger::before {
+  background: var(--md-sys-color-error);
+}
+
+.form-btn.danger:hover {
+  background: rgba(242, 184, 184, 0.18);
+  border-color: var(--md-sys-color-error);
+  box-shadow: none;
+}
+
+/* Shared button states: press, keyboard focus, disabled */
+.form-btn:active {
+  transform: scale(0.97);
+  transition-duration: var(--dur-1);
+}
+
+.form-btn:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.form-btn:disabled,
+.form-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Uniform placeholder across all fields */
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: hsla(var(--text-muted), 0.5);
+}
+
+/* --- Glassmorphic Modal Dialog Component --- */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(4, 7, 15, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 2000;
+  /* Always rendered so the closing transition can animate. Visibility +
+     opacity are toggled by .active so layout-affecting display: none is gone. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease-out),
+              visibility 0s linear var(--dur-2);
+}
+
+.dialog-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* When opening, the visibility toggle is immediate so the dialog content is
+     immediately interactive. */
+  transition: opacity var(--dur-2) var(--ease-out),
+              visibility 0s linear 0s;
+}
+
+/* MD3 Dialog */
+.dialog {
+  background: linear-gradient(180deg,
+    rgba(36, 34, 42, 0.97) 0%,
+    rgba(28, 27, 31, 0.97) 100%);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-extra-large);
+  width: 95%;
+  max-width: 650px;
+  padding: 1.5rem 1.75rem 1.75rem;
+  box-shadow: var(--glass-2-shadow), 0 0 0 1px hsla(var(--accent), 0.06);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  /* Animated open AND close — Apple spring ease. */
+  transform: scale(0.92) translateY(10px);
+  opacity: 0;
+  transition: transform var(--dur-3) cubic-bezier(0.32, 0.72, 0, 1),
+              opacity var(--dur-2) var(--ease-out);
+}
+
+.dialog-overlay.active .dialog {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* MD3 Headline Small for dialog title */
+.dialog-title {
+  font-size: var(--md-headline-small);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 0.5rem;
+}
+
+/* Tabs Navigation in Dialog */
+.dialog-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+  margin-bottom: 0.5rem;
+}
+
+.dialog-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px;
+  color: hsl(var(--text-muted));
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-smooth);
+}
+
+.dialog-tab-btn:hover {
+  color: white;
+  background: rgba(255,255,255,0.02);
+}
+
+.dialog-tab-btn.active {
+  background: var(--glass-bg-hover);
+  color: hsl(var(--text-main));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Two-Column Form Layout inside Dialog */
+.custom-tab-layout {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.dialog-left-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dialog-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shortcut-icon-wrapper-preview {
+  width: 120px;
+  height: 120px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--icon-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.shortcut-preview-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--icon-radius);
+}
+
+.shortcut-preview-box span {
+  font-size: 3rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.shortcut-preview-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 14px;
+  box-sizing: border-box;
+  border-radius: 28px;
+  transition: transform 0.1s ease;
+}
+
+.zoom-control-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.fit-control-group {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.fit-control-group .toggle-wrapper {
+  width: 100%;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fit-control-group .toggle-wrapper .form-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #a1a1aa;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+
+#shortcut-zoom-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+}
+
+#shortcut-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: hsl(var(--accent));
+  box-shadow: 0 0 10px hsla(var(--accent), 0.5);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+#shortcut-zoom-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.file-upload-wrapper.mini {
+  padding: 10px;
+  font-size: 0.85rem;
+  border-style: solid;
+  border-width: 1px;
+}
+
+/* --- Edit-mode: chips that appear when the user changes the site URL --- */
+/* The hint + chips offer "refresh icon" (re-fetch from the new domain) or
+   "restore" (revert to the icon the shortcut had when the dialog opened). */
+.icon-url-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid hsla(var(--accent), 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.icon-url-actions[hidden] {
+  display: none;
+}
+
+.icon-url-actions-hint {
+  font-size: 0.78rem;
+  color: hsla(var(--text-muted), 0.7);
+}
+
+.icon-url-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: hsl(var(--accent));
+  color: var(--md-sys-color-on-primary, #2a1352);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              color var(--dur-2) var(--ease-out),
+              transform var(--dur-1) var(--ease-out),
+              filter var(--dur-2) var(--ease-out);
+}
+
+.chip-btn:hover {
+  filter: brightness(1.08);
+}
+
+.chip-btn:active {
+  transform: scale(0.97);
+}
+
+.chip-btn:focus-visible {
+  outline: 2px solid hsla(var(--accent), 0.6);
+  outline-offset: 2px;
+}
+
+.chip-btn-ghost {
+  background: transparent;
+  color: hsl(var(--accent));
+  border-color: hsla(var(--accent), 0.35);
+}
+
+.chip-btn-ghost:hover {
+  background: color-mix(in srgb, hsl(var(--accent)) 12%, transparent);
+  border-color: hsla(var(--accent), 0.55);
+  filter: none;
+}
+
+/* ── Shortcut dialog: visual refinement ── */
+.dialog-right-col {
+  gap: 0.95rem;
+}
+
+/* Label above each field in the right column */
+.dialog-right-col .form-group > .form-label {
+  display: block;
+  margin-bottom: 7px;
+}
+
+.form-label-hint {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: hsla(var(--text-muted), 0.55);
+}
+
+/* Zoom with live value badge */
+.zoom-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.zoom-value,
+.range-value {
+  font-weight: 600;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--md-sys-color-primary);
+  background: hsla(var(--accent), 0.14);
+  padding: 2px 8px;
+  border-radius: 999px;
+  min-width: 42px;
+  text-align: center;
+}
+
+/* Generic range slider (used by the icon-corners control in Settings) */
+.range-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.range-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+}
+
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+  box-shadow: 0 0 10px hsla(var(--accent), 0.45);
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Preset Grid inside Home tab */
+.popular-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.popular-preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  padding: 12px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: hsl(var(--text-main));
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition-smooth);
+}
+
+.popular-preset-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: hsla(var(--accent), 0.4);
+  transform: translateY(-2px);
+}
+
+.popular-preset-btn img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+/* Letter fallback when the preset icon fails to load. */
+.popular-preset-fallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.2px;
+}
+
+/* System list inside Chrome tab */
+.chrome-pages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.chrome-page-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: hsl(var(--text-main));
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  transition: var(--transition-smooth);
+}
+
+.chrome-page-item:hover {
+  background: var(--glass-bg-hover);
+  border-color: hsla(var(--accent), 0.3);
+  transform: translateX(4px);
+}
+
+.chrome-page-item img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* --- Bottom Drawer Wallpaper System --- */
+.bottom-drawer {
+  position: fixed;
+  bottom: -260px; /* Hidden state */
+  left: 0;
+  width: 100%;
+  height: 230px;
+  background: rgba(10, 14, 26, 0.6);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
+  z-index: 999;
+  transition: bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 2.5rem;
+  box-sizing: border-box;
+}
+
+.bottom-drawer.active {
+  bottom: 0;
+}
+
+.bottom-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.bottom-drawer-title-group {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.drawer-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: hsla(var(--text-main), 0.8);
+  text-transform: uppercase;
+}
+
+.drawer-section-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Drawer Tabs (DAILY / STATIC / LIVE) — filter the carousel below */
+.drawer-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+
+.drawer-tab {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: hsla(var(--text-main), 0.55);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color var(--dur-2) var(--ease-out);
+}
+
+.drawer-tab:hover {
+  color: hsla(var(--text-main), 0.85);
+}
+
+.drawer-tab.active {
+  color: hsl(var(--text-main));
+}
+
+.drawer-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(var(--accent));
+}
+
+.close-bottom-drawer-btn {
+  background: none;
+  border: none;
+  color: hsl(var(--text-muted));
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-bottom-drawer-btn:hover {
+  background: var(--glass-bg-hover);
+  color: white;
+  transform: rotate(90deg);
+}
+
+.close-bottom-drawer-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+.bottom-drawer-content {
+  flex: 1;
+  overflow: hidden;
+  /* Breathing room on all four sides: the hover "lift" and the shadow have
+     space without being clipped, and cards aren't flush against the drawer edge. */
+  padding: 16px 16px 12px;
+}
+
+.wallpaper-carousel-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.wallpaper-daily-panel {
+  flex-shrink: 0;
+}
+
+/* Tab-filtered visibility: only the active panel is shown. */
+.wallpaper-carousel-container > [data-panel] {
+  display: none;
+}
+.wallpaper-carousel-container[data-active-tab="daily"]  > [data-panel="daily"],
+.wallpaper-carousel-container[data-active-tab="static"] > [data-panel="static"],
+.wallpaper-carousel-container[data-active-tab="live"]   > [data-panel="live"] {
+  display: flex;
+}
+
+.wallpaper-static-panel,
+.wallpaper-live-panel {
+  gap: 1rem;
+  overflow-x: auto;
+  flex: 1;
+  /* Symmetric vertical padding so the hover lift (translateY(-4px)) and its
+     shadow aren't clipped by overflow-x: auto (which makes the y-axis behave
+     as auto per spec). */
+  padding: 8px 0;
+  scroll-behavior: smooth;
+}
+
+/* Hide Scrollbar */
+.wallpaper-static-panel::-webkit-scrollbar,
+.wallpaper-live-panel::-webkit-scrollbar {
+  height: 4px;
+}
+.wallpaper-static-panel::-webkit-scrollbar-thumb,
+.wallpaper-live-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* Curated Wallpaper Card */
+.wallpaper-card {
+  width: 160px;
+  height: 100px;
+  background: rgba(0, 0, 0, 0.25);
+  /* Border visible enough so it doesn't "disappear" over the dark background */
+  border: 1px solid hsla(var(--accent), 0.3);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.wallpaper-card:hover {
+  /* Lift only, no scale: scaling expanded the card sideways and the parent's
+     overflow:hidden clipped the left/right borders. */
+  transform: translateY(-4px);
+  border-color: hsla(var(--accent), 0.55);
+  /* Dark shadow for depth + violet glow that matches the border */
+  box-shadow: 0 8px 22px -4px rgba(0, 0, 0, 0.55),
+              0 0 16px hsla(var(--accent), 0.18);
+}
+
+.wallpaper-card.active {
+  /* Crisp violet inner ring + visible glow */
+  border-color: hsl(var(--accent));
+  box-shadow: 0 0 0 1px hsl(var(--accent)),
+              0 0 18px hsla(var(--accent), 0.35);
+}
+
+.wp-card-thumb {
+  width: 100%;
+  height: 64px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.wp-card-thumb::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.4) 100%);
+}
+
+/* Video thumbnail: the real clip fills the whole card */
+.wp-card-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wallpaper-card.daily .wp-card-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.daily-symbol {
+  font-size: 1.8rem;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  animation: spinSlow 20s linear infinite;
+}
+
+.play-icon-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: var(--transition-smooth);
+}
+
+.wallpaper-card:hover .play-icon-overlay {
+  background: hsla(var(--accent), 0.7);
+  border-color: white;
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 10px hsla(var(--accent), 0.5);
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.wp-card-info {
+  padding: 6px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(10, 15, 30, 0.6);
+  flex: 1;
+}
+
+.wp-card-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(var(--text-main));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wp-card-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.wp-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+.wp-dot.active {
+  background: hsl(var(--accent));
+  box-shadow: 0 0 5px hsl(var(--accent));
+}
+
+/* File Upload Premium Styling */
+.file-upload-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: hsla(var(--accent), 0.03);
+  border: 1.5px dashed hsla(var(--accent), 0.22);
+  border-radius: var(--md-shape-full);
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-align: center;
+  font-size: var(--md-label-large);
+  font-weight: 500;
+  color: hsl(var(--text-muted));
+}
+
+.file-upload-wrapper svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.file-upload-wrapper:hover {
+  border-color: hsla(var(--accent), 0.5);
+  background: hsla(var(--accent), 0.08);
+  color: var(--md-sys-color-on-surface);
+}
+
+.file-upload-wrapper:active {
+  transform: scale(0.98);
+  transition-duration: var(--dur-1);
+}
+
+/* "Backup" section: stacked actions with consistent rhythm */
+.backup-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.backup-group .form-label {
+  margin-bottom: 2px;
+}
+
+.backup-group .form-btn.danger {
+  margin-top: 6px; /* extra spacing before the destructive action */
+}
+
+.file-upload-wrapper input[type="file"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Dynamic CSS colors helpers */
+.color-swatches {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: var(--transition-smooth);
+}
+
+.color-swatch:hover,
+.color-swatch.active {
+  border-color: white;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255,255,255,0.4);
+}
+
+/* --- Accent palette swatches (Settings → "Color de acento") --- */
+.accent-swatches {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.accent-swatch {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--swatch-color, hsl(266, 61%, 78%));
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.accent-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.15),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+
+.accent-swatch.active {
+  border-color: white;
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px var(--swatch-color),
+              0 6px 18px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+
+.accent-swatch:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Tooltip on the accent swatches uses the same custom system as the sidebar. */
+.accent-swatch[data-tooltip] {
+  position: relative;
+}
+
+.accent-swatch[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(20, 18, 28, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease-out),
+              transform var(--dur-2) var(--ease-out);
+  z-index: 1000;
+}
+
+.accent-swatch[data-tooltip]:hover::after,
+.accent-swatch[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── MD3 Snackbar (Toast) ── */
+.toast {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  /* MD3 Inverse Surface */
+  background: var(--md-sys-color-on-surface);
+  color: #1C1B1F;
+  border: none;
+  border-radius: var(--md-shape-extra-small);
+  padding: 14px 20px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+  backdrop-filter: none;
+  font-family: var(--md-font);
+  font-size: var(--md-body-medium);
+  font-weight: 400;
+  letter-spacing: 0.25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 3000;
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
+  pointer-events: none;
+  min-width: 200px;
+  max-width: 420px;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto; /* allow clicking the inline action button */
+}
+
+/* Inline action button inside the toast (MD3 Snackbar action).
+   Uses primary-container (derived darker shade of accent) for guaranteed
+   contrast on the light toast surface — accent at l>60% would fail WCAG. */
+.toast-action {
+  background: transparent;
+  border: none;
+  color: var(--md-sys-color-primary-container);
+  font-weight: 600;
+  font-size: var(--md-body-medium);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 6px 12px;
+  margin-left: 4px;
+  border-radius: 4px;
+  transition: background var(--dur-1) var(--ease-out);
+}
+
+.toast-action:hover {
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 14%, transparent);
+}
+
+.toast-action:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary-container);
+  outline-offset: 2px;
+}
+
+/* Manual dismiss button (× on the right of the toast). */
+.toast-close {
+  background: transparent;
+  border: none;
+  color: rgba(28, 27, 31, 0.55);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: background var(--dur-1) var(--ease-out),
+              color var(--dur-1) var(--ease-out);
+}
+
+.toast-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.toast-close:hover {
+  background: rgba(28, 27, 31, 0.12);
+  color: #1C1B1F;
+}
+
+.toast-close:focus-visible {
+  outline: 2px solid #1C1B1F;
+  outline-offset: 2px;
+}
+
+/* ── MD3-aligned Animations ── */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popoverReveal {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modalScaleReveal {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* --- About Dialog (typographic redesign) ---
+   Hierarchy over decoration: header / features list / author / built-with
+   each occupy a clearly different visual weight. No competing cards. */
+.about-dialog-content {
+  max-width: 460px;
+  text-align: left;
+  gap: 1.25rem;
+}
+
+.about-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 1rem;
+}
+
+.about-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  /* Entry: small bounce-in. Idle: subtle breathing glow. Two animations chained
+     via different delays so they don't conflict. */
+  animation:
+    aboutLogoIn 520ms cubic-bezier(0.32, 0.72, 0, 1.1) both,
+    aboutLogoBreath 6s ease-in-out 600ms infinite;
+  transform-origin: center;
+  will-change: transform, filter;
+}
+
+@keyframes aboutLogoIn {
+  0%   { opacity: 0; transform: scale(0.6) rotate(-12deg); filter: drop-shadow(0 0 0 hsla(var(--accent), 0)); }
+  60%  { opacity: 1; transform: scale(1.06) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); filter: drop-shadow(0 6px 18px hsla(var(--accent), 0.35)); }
+}
+
+@keyframes aboutLogoBreath {
+  0%, 100% { filter: drop-shadow(0 6px 18px hsla(var(--accent), 0.32)); transform: scale(1); }
+  50%      { filter: drop-shadow(0 10px 28px hsla(var(--accent), 0.55)); transform: scale(1.04); }
+}
+
+.about-title-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.about-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.about-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.5px;
+  animation: aboutFadeIn 420ms var(--ease-out) 120ms both;
+}
+
+.about-version {
+  font-size: 0.7rem;
+  color: hsl(var(--accent));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: hsla(var(--accent), 0.12);
+  border: 1px solid hsla(var(--accent), 0.25);
+  animation: aboutFadeIn 420ms var(--ease-out) 160ms both;
+}
+
+.about-tagline {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: hsl(var(--text-muted));
+  animation: aboutFadeIn 420ms var(--ease-out) 200ms both;
+}
+
+@keyframes aboutFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.about-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Features as a typographic list, not stacked cards. Icon hints visual
+   identity but the meaning is carried by the text. */
+.about-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: hsl(var(--text-main));
+  animation: aboutFadeIn 380ms var(--ease-out) both;
+  transition: transform var(--dur-2) var(--ease-out),
+              color var(--dur-2) var(--ease-out);
+}
+
+/* Cascade: each line enters slightly after the previous one. */
+.about-features .feature-line:nth-child(1) { animation-delay: 260ms; }
+.about-features .feature-line:nth-child(2) { animation-delay: 310ms; }
+.about-features .feature-line:nth-child(3) { animation-delay: 360ms; }
+.about-features .feature-line:nth-child(4) { animation-delay: 410ms; }
+.about-features .feature-line:nth-child(5) { animation-delay: 460ms; }
+.about-features .feature-line:nth-child(6) { animation-delay: 510ms; }
+
+.feature-line:hover {
+  transform: translateX(4px);
+  color: white;
+}
+
+.feature-line:hover .feature-icon {
+  transform: scale(1.15) rotate(-4deg);
+  color: hsl(var(--accent));
+}
+
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: hsl(var(--accent));
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.feature-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.about-divider {
+  border: 0;
+  height: 1px;
+  background: var(--glass-border);
+  margin: 0;
+}
+
+/* Author and "built with" share the same meta block layout. */
+.about-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: aboutFadeIn 420ms var(--ease-out) both;
+}
+
+.about-body > .about-meta:nth-of-type(1) { animation-delay: 540ms; }
+.about-body > .about-meta:nth-of-type(2) { animation-delay: 660ms; }
+.about-body > .about-meta:nth-of-type(3) { animation-delay: 780ms; }
+
+/* Keyboard shortcuts block inside About.
+   Layout: description on the left (reads first), keys on the right (always at
+   the same offset so the eye scans them in a clean vertical column). */
+.kbd-list {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 16px;
+  row-gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.kbd-row {
+  display: contents;
+}
+
+.kbd-row dd {
+  margin: 0;
+  font-size: 0.85rem;
+  color: hsl(var(--text-muted));
+  line-height: 1.5;
+  align-self: center;
+}
+
+.kbd-row dt {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+/* A "combo" groups keys that must be pressed together (e.g. ⌘+K).
+   Keys touch each other visually with a hairline gap. */
+.kbd-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.kbd-or {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: hsl(var(--text-faint));
+  text-transform: lowercase;
+  letter-spacing: 0.2px;
+}
+
+/* Key chip — neutral so it always reads regardless of the active accent
+   (titanium gray, lavender, etc. don't all give the same contrast). */
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  font-family: var(--md-font);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 1px 0 rgba(0, 0, 0, 0.3);
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.about-meta-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: hsl(var(--text-faint));
+  margin-bottom: 4px;
+}
+
+.about-meta-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+}
+
+.about-meta-role {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: hsl(var(--text-muted));
+}
+
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Footer actions: aligned right, secondary button (not full-width violet).
+   `.dialog-actions` is already flex-end, but `.form-btn` has `width:100%`
+   baked in — we override it here so "Cerrar" hugs its label. */
+.about-actions {
+  justify-content: flex-end;
+}
+
+.about-actions .form-btn {
+  width: auto;
+  padding: 8px 22px;
+}
+
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--md-shape-full);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  color: hsl(var(--text-main));
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform var(--dur-2) var(--ease-out),
+              background var(--dur-2) var(--ease-out),
+              border-color var(--dur-2) var(--ease-out),
+              color var(--dur-2) var(--ease-out),
+              box-shadow var(--dur-2) var(--ease-out);
+}
+
+.about-link svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.about-link:hover {
+  background: hsla(var(--accent), 0.14);
+  border-color: hsla(var(--accent), 0.55);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px hsla(var(--accent), 0.25);
+}
+
+.about-link:hover svg {
+  transform: scale(1.15) rotate(-6deg);
+  color: hsl(var(--accent));
+}
+
+.about-link:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: var(--dur-1);
+}
+
+/* ── Accesibilidad: respeta la preferencia de movimiento reducido ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
