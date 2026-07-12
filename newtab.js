@@ -248,8 +248,7 @@ const I18N = {
     'accent.mono': 'Mono',
     'settings.backupSection': 'Copia de Seguridad',
     'settings.export': 'Exportar configuración (.json)',
-    'settings.selectBackup': 'Seleccionar archivo de respaldo (.json)',
-    'settings.import': 'Importar configuración',
+    'settings.import': 'Importar configuración (.json)',
     'settings.reset': 'Restablecer valores de fábrica',
     'dimNight.activeNow': 'Activo ahora · el fondo está atenuado',
     'dimNight.daytime': 'Es de día · se atenuará a las {time}',
@@ -415,8 +414,7 @@ const I18N = {
     'accent.mono': 'Mono',
     'settings.backupSection': 'Backup',
     'settings.export': 'Export settings (.json)',
-    'settings.selectBackup': 'Select backup file (.json)',
-    'settings.import': 'Import settings',
+    'settings.import': 'Import settings (.json)',
     'settings.reset': 'Reset to factory defaults',
     'dimNight.activeNow': 'Active now · background is dimmed',
     'dimNight.daytime': 'Daytime · will dim at {time}',
@@ -603,7 +601,6 @@ class NewTabController {
       gridDensitySelect: document.getElementById('grid-density-select'),
       accentSwatches: document.getElementById('accent-swatches'),
       importJsonFile: document.getElementById('import-json-file'),
-      importFileLabel: document.getElementById('import-file-label'),
       importJsonBtn: document.getElementById('import-json-btn'),
       exportJsonBtn: document.getElementById('export-json-btn'),
       resetConfigBtn: document.getElementById('reset-config-btn'),
@@ -1520,13 +1517,10 @@ class NewTabController {
 
     // Export configuration as .json file
     this.dom.exportJsonBtn.addEventListener('click', () => this.exportBackupUseCase());
-    // Import configuration from file
-    this.dom.importJsonBtn.addEventListener('click', () => this.importBackupUseCase());
-    // Show selected filename and toggle import button availability accordingly.
+    // Import configuration: the button opens the picker; selecting a file imports it.
+    this.dom.importJsonBtn.addEventListener('click', () => this.dom.importJsonFile.click());
     this.dom.importJsonFile.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      this.dom.importFileLabel.textContent = file ? file.name : this.t('settings.selectBackup');
-      this.dom.importJsonBtn.disabled = !file;
+      if (e.target.files[0]) this.importBackupUseCase();
     });
     // Reset to factory defaults
     this.dom.resetConfigBtn.addEventListener('click', () => this.resetConfigUseCase());
@@ -3603,6 +3597,9 @@ class NewTabController {
    */
   async importBackupUseCase() {
     const file = this.dom.importJsonFile.files[0];
+    // Clear right away so re-picking the same file re-fires 'change',
+    // even if this import attempt fails. The File object stays readable.
+    this.dom.importJsonFile.value = '';
     if (!file) {
       this.showToast(this.t('toast.selectJson'));
       return;
@@ -3681,10 +3678,6 @@ class NewTabController {
       this.renderShortcuts();
       this.renderWallpaperDrawer();
 
-      // Reset file input and re-disable the button until another file is picked.
-      this.dom.importJsonFile.value = '';
-      this.dom.importFileLabel.textContent = this.t('settings.selectBackup');
-      this.dom.importJsonBtn.disabled = true;
       this.toggleDrawer(false);
       this.showToast(this.t('toast.importOk', { count: importedShortcuts.length }));
 

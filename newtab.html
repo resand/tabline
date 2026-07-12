@@ -299,27 +299,23 @@
             <span data-i18n="settings.export">Exportar configuración (.json)</span>
           </button>
 
-          <!-- Importar desde archivo -->
-          <div class="file-upload-wrapper" id="import-file-wrapper">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-            <span id="import-file-label" data-i18n="settings.selectBackup">Seleccionar archivo de respaldo
-              (.json)</span>
-            <input type="file" id="import-json-file" accept=".json,application/json">
-          </div>
-          <button id="import-json-btn" class="form-btn secondary" disabled>
+          <!-- Importar desde archivo: one click opens the picker, import runs on selection -->
+          <input type="file" id="import-json-file" accept=".json,application/json" hidden>
+          <button id="import-json-btn" class="form-btn secondary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            <span data-i18n="settings.import">Importar configuración</span>
+            <span data-i18n="settings.import">Importar configuración (.json)</span>
           </button>
+        </div>
+      </section>
 
-          <!-- Restablecer -->
+      <!-- Reset (destructive — kept apart from the backup group) -->
+      <section class="settings-section">
+        <div class="form-group backup-group">
           <button id="reset-config-btn" class="form-btn danger">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round" aria-hidden="true">
