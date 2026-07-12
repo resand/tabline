@@ -1,6 +1,8 @@
 # TabLine
 
-A quiet new tab for Chrome: clock, Google search, reorderable squircle shortcuts and customizable HD wallpapers. Built to be opened tens of times a day without getting in the way.
+A quiet new tab for Chrome: clock, search, reorderable squircle shortcuts and customizable HD wallpapers. Built to be opened tens of times a day without getting in the way.
+
+![TabLine — a quiet new tab](store-assets/screenshot-grid.png)
 
 > Vanilla JS, no bundler, no dependencies. Just three files (`newtab.html`, `newtab.js`, `newtab.css`) plus assets and a manifest. Loads as-is.
 
