@@ -18,20 +18,28 @@ class StorageRepository {
    * Fetch Settings from Storage
    */
   async getSettings() {
-    return new Promise((resolve) => {
+    const loaded = await new Promise((resolve) => {
       if (this.isExtension) {
-        chrome.storage.local.get('settings', (result) => {
-          const defaults = this.getDefaultSettings();
-          const loaded = result.settings || {};
-          resolve({ ...defaults, ...loaded });
-        });
+        chrome.storage.local.get('settings', (result) => resolve((result && result.settings) || {}));
       } else {
-        const localData = localStorage.getItem('premium_settings');
-        const defaults = this.getDefaultSettings();
-        const loaded = localData ? JSON.parse(localData) : {};
-        resolve({ ...defaults, ...loaded });
+        try { resolve(JSON.parse(localStorage.getItem('premium_settings')) || {}); }
+        catch (_) { resolve({}); }
       }
     });
+    return this.migrateSettings({ ...this.getDefaultSettings(), ...loaded });
+  }
+
+  /**
+   * Upgrades fields written by older versions. Safe to run on every load.
+   */
+  migrateSettings(s) {
+    // 0.9.3: bundled wallpapers moved from PNG to WebP.
+    if (typeof s.bgStaticUrl === 'string' && /^wallpapers\/bg\d+\.png$/.test(s.bgStaticUrl)) {
+      s.bgStaticUrl = s.bgStaticUrl.replace(/\.png$/, '.webp');
+    }
+    // 0.9.3: `bgUrl` mirrored other fields and is no longer read.
+    delete s.bgUrl;
+    return s;
   }
 
   /**
@@ -58,8 +66,9 @@ class StorageRepository {
           resolve(result.shortcuts || this.getDefaultShortcuts());
         });
       } else {
-        const localData = localStorage.getItem('premium_shortcuts');
-        resolve(localData ? JSON.parse(localData) : this.getDefaultShortcuts());
+        let local = null;
+        try { local = JSON.parse(localStorage.getItem('premium_shortcuts')); } catch (_) {}
+        resolve(Array.isArray(local) ? local : this.getDefaultShortcuts());
       }
     });
   }
@@ -86,11 +95,12 @@ class StorageRepository {
       timeFormat12: true,
       showSearchBar: true,
       bgProvider: 'video',
-      bgStaticUrl: 'wallpapers/bg1.png',
+      bgStaticUrl: 'wallpapers/bg1.webp',
       bgCustomUrl: '',
       bgVideoUrl: 'wallpapers/vid_rain.mp4',
-      bgUrl: 'wallpapers/vid_rain.mp4',
-      bgFileBase64: '',
+      // Bumped whenever an uploaded image/video in IndexedDB changes, so other
+      // open tabs notice through chrome.storage.onChanged and re-render.
+      bgMediaRev: 0,
       dimNight: false,
       dimStart: '19:00',
       dimEnd: '07:00',
@@ -98,6 +108,7 @@ class StorageRepository {
       iconRoundness: 25, // 0 = square, 25 = squircle (default), 50 = circle
       accentPalette: 'space',
       gridDensity: 'auto', // 'auto' | '3' | '4' — number of rows in the shortcuts grid
+      hostAccessAsked: false, // optional <all_urls> access was requested once (see saveShortcutUseCase)
       pageLabels: []       // Optional label per page index. Sparse — empty slots fall back to a plain dot.
     };
   }
@@ -107,11 +118,11 @@ class StorageRepository {
    */
   getDefaultShortcuts() {
     return [
-      { id: 'sc_0', name: 'Google', url: 'https://www.google.com', icon: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg', color: '#ffffff', zoom: 1.0 },
-      { id: 'sc_1', name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg', color: '#ffffff', zoom: 1.0 },
-      { id: 'sc_2', name: 'GitHub', url: 'https://github.com', icon: 'https://upload.wikimedia.org/wikipedia/commons/c/c2/GitHub_Glitch_Logo.svg', color: '#ffffff', zoom: 1.0 },
-      { id: 'sc_3', name: 'Gemini', url: 'https://gemini.google.com', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', color: '#ffffff', zoom: 1.0 },
-      { id: 'sc_4', name: 'Firebase', url: 'https://firebase.google.com', icon: 'https://upload.wikimedia.org/wikipedia/commons/f/f7/Firebase_logo.svg', color: '#ffffff', zoom: 1.0 }
+      { id: 'sc_0', name: 'Google', url: 'https://www.google.com', icon: 'icons/presets/google.svg', color: '#ffffff', zoom: 1.0 },
+      { id: 'sc_1', name: 'YouTube', url: 'https://www.youtube.com', icon: 'icons/presets/youtube.svg', color: '#ffffff', zoom: 1.0 },
+      { id: 'sc_2', name: 'GitHub', url: 'https://github.com', icon: 'icons/presets/github.svg', color: '#ffffff', zoom: 1.0 },
+      { id: 'sc_3', name: 'Gemini', url: 'https://gemini.google.com', icon: 'icons/presets/gemini.png', color: '#ffffff', zoom: 1.0 },
+      { id: 'sc_4', name: 'Firebase', url: 'https://firebase.google.com', icon: 'icons/presets/firebase.png', color: '#ffffff', zoom: 1.0 }
     ];
   }
 }
@@ -137,6 +148,41 @@ class Shortcut {
     }
     return url;
   }
+
+  /**
+   * Returns the URL with a scheme if it is a usable shortcut target
+   * (http/https with a host, or chrome://), else null. Keeps the user's
+   * spelling instead of URL.href so "github.com" doesn't gain a trailing "/".
+   */
+  static normalizeUrl(raw) {
+    const s = String(raw || '').trim();
+    // Chrome's URL parser accepts spaces in hosts ("hola mundo"), so reject them here.
+    if (!s || /\s/.test(s)) return null;
+    const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(s);
+    const candidate = hasScheme ? s : 'https://' + s;
+    let u;
+    try { u = new URL(candidate); } catch (_) { return null; }
+    if (u.protocol === 'chrome:') return candidate;
+    if ((u.protocol !== 'http:' && u.protocol !== 'https:') || !u.hostname) return null;
+    // Without an explicit scheme, require something that looks like a domain
+    // ("github.com", "localhost", an IP); "http://intranet" is still allowed.
+    if (!hasScheme && !/[.:\[]/.test(u.host) && u.hostname !== 'localhost') return null;
+    return candidate;
+  }
+
+  /**
+   * Colors end up in `style.background`, so only allow the shapes the color
+   * picker produces. Anything else (e.g. `url(...)` from a crafted backup)
+   * falls back to the default.
+   */
+  static safeColor(c) {
+    const ok = /^(transparent|#[0-9a-f]{3,8}|linear-gradient\(\s*\d+deg(\s*,\s*#[0-9a-f]{3,8}\s+\d+%)+\s*\))$/i;
+    return typeof c === 'string' && ok.test(c.trim()) ? c.trim() : '#1f2937';
+  }
+
+  static safeIcon(icon) {
+    return typeof icon === 'string' && /^(data:image\/|https?:\/\/|icons\/)/i.test(icon) ? icon : '';
+  }
 }
 
 // ==========================================
@@ -145,25 +191,25 @@ class Shortcut {
 
 const CURATED_WALLPAPERS = [
   // Natural landscapes
-  { id: 'wp_1',  name: 'Valle Verde',            file: 'wallpapers/bg1.png' },
-  { id: 'wp_2',  name: 'Atardecer en Marte',     file: 'wallpapers/bg2.png' },
-  { id: 'wp_3',  name: 'Colinas Doradas',        file: 'wallpapers/bg3.png' },
-  { id: 'wp_4',  name: 'Reflejos de Lago',       file: 'wallpapers/bg4.png' },
-  { id: 'wp_5',  name: 'Lago Glaciar',           file: 'wallpapers/bg5.png' },
-  { id: 'wp_6',  name: 'Amanecer en Bagan',      file: 'wallpapers/bg6.png' },
-  { id: 'wp_7',  name: 'Tormenta en el Lago',    file: 'wallpapers/bg7.png' },
-  { id: 'wp_8',  name: 'Atardecer Alpino',       file: 'wallpapers/bg8.png' },
-  { id: 'wp_15', name: 'Dunas al Atardecer',     file: 'wallpapers/bg15.png' },
-  { id: 'wp_17', name: 'Bosque Brumoso',         file: 'wallpapers/bg17.png' },
-  { id: 'wp_14', name: 'Playa Bioluminiscente',  file: 'wallpapers/bg14.png' },
-  { id: 'wp_13', name: 'Cielo Violeta',          file: 'wallpapers/bg13.png' },
+  { id: 'wp_1',  name: 'Valle Verde',            file: 'wallpapers/bg1.webp' },
+  { id: 'wp_2',  name: 'Atardecer en Marte',     file: 'wallpapers/bg2.webp' },
+  { id: 'wp_3',  name: 'Colinas Doradas',        file: 'wallpapers/bg3.webp' },
+  { id: 'wp_4',  name: 'Reflejos de Lago',       file: 'wallpapers/bg4.webp' },
+  { id: 'wp_5',  name: 'Lago Glaciar',           file: 'wallpapers/bg5.webp' },
+  { id: 'wp_6',  name: 'Amanecer en Bagan',      file: 'wallpapers/bg6.webp' },
+  { id: 'wp_7',  name: 'Tormenta en el Lago',    file: 'wallpapers/bg7.webp' },
+  { id: 'wp_8',  name: 'Atardecer Alpino',       file: 'wallpapers/bg8.webp' },
+  { id: 'wp_15', name: 'Dunas al Atardecer',     file: 'wallpapers/bg15.webp' },
+  { id: 'wp_17', name: 'Bosque Brumoso',         file: 'wallpapers/bg17.webp' },
+  { id: 'wp_14', name: 'Playa Bioluminiscente',  file: 'wallpapers/bg14.webp' },
+  { id: 'wp_13', name: 'Cielo Violeta',          file: 'wallpapers/bg13.webp' },
   // Sky and space
-  { id: 'wp_9',  name: 'Vía Láctea',             file: 'wallpapers/bg9.png' },
-  { id: 'wp_10', name: 'Anillos Cósmicos',       file: 'wallpapers/bg10.png' },
-  { id: 'wp_11', name: 'Mundo Lejano',           file: 'wallpapers/bg11.png' },
+  { id: 'wp_9',  name: 'Vía Láctea',             file: 'wallpapers/bg9.webp' },
+  { id: 'wp_10', name: 'Anillos Cósmicos',       file: 'wallpapers/bg10.webp' },
+  { id: 'wp_11', name: 'Mundo Lejano',           file: 'wallpapers/bg11.webp' },
   // Cities / future
-  { id: 'wp_12', name: 'Ciudad del Futuro',      file: 'wallpapers/bg12.png' },
-  { id: 'wp_16', name: 'Tokio Neón',             file: 'wallpapers/bg16.png' }
+  { id: 'wp_12', name: 'Ciudad del Futuro',      file: 'wallpapers/bg12.webp' },
+  { id: 'wp_16', name: 'Tokio Neón',             file: 'wallpapers/bg16.webp' }
 ];
 
 const CURATED_VIDEOS = [
@@ -188,7 +234,6 @@ const CURATED_VIDEOS = [
 const I18N = {
   es: {
     'sidebar.about': 'Acerca de TabLine',
-    'dialog.resetConfirm': '¿Seguro que quieres restablecer TabLine a los valores de fábrica?\n\nSe borrarán todos tus atajos y configuración. Esta acción no se puede deshacer.',
     'shortcut.options': 'Opciones',
     'about.logoAlt': 'Logo de TabLine',
     'sidebar.settings': 'Configuración',
@@ -226,7 +271,6 @@ const I18N = {
     'settings.videoUrlPh': 'https://ejemplo.com/video.mp4',
     'settings.chooseVideo': 'Cargar video desde tu equipo',
     'settings.videoLoaded': 'Video cargado ✓',
-    'settings.videoSaveFailed': 'No se pudo cargar el video',
     'settings.dimNight': 'Atenuar fondo en la noche',
     'settings.dimNightDesc': 'Oscurece el fondo automáticamente dentro de tu horario nocturno.',
     'settings.from': 'Desde',
@@ -332,10 +376,12 @@ const I18N = {
     'chrome.settings': 'Configuración',
     'chrome.extensions': 'Extensiones',
     'toast.bgUpdated': 'Fondo de pantalla actualizado',
+    'toast.bgSaveFailed': 'No se pudo guardar el fondo',
     'toast.bgChanged': 'Fondo de pantalla cambiado a {name}',
     'toast.videoBgChanged': 'Fondo de video cambiado a {name}',
     'toast.dailyOn': 'Rotación de fondos «Daily» activada ☼',
     'toast.fillFields': 'Por favor, rellena todos los campos requeridos',
+    'toast.invalidUrl': 'Esa dirección no es válida',
     'toast.shortcutUpdated': 'Atajo actualizado con éxito',
     'toast.iconRestored': 'Icono original restaurado',
     'toast.shortcutAdded': 'Atajo añadido con éxito',
@@ -354,7 +400,6 @@ const I18N = {
   },
   en: {
     'sidebar.about': 'About TabLine',
-    'dialog.resetConfirm': 'Are you sure you want to reset TabLine to factory settings?\n\nAll your shortcuts and settings will be deleted. This action cannot be undone.',
     'shortcut.options': 'Options',
     'about.logoAlt': 'TabLine logo',
     'sidebar.settings': 'Settings',
@@ -392,7 +437,6 @@ const I18N = {
     'settings.videoUrlPh': 'https://example.com/video.mp4',
     'settings.chooseVideo': 'Upload video from your device',
     'settings.videoLoaded': 'Video loaded ✓',
-    'settings.videoSaveFailed': 'Could not load the video',
     'settings.dimNight': 'Dim background at night',
     'settings.dimNightDesc': 'Automatically darkens the background during your night hours.',
     'settings.from': 'From',
@@ -498,10 +542,12 @@ const I18N = {
     'chrome.settings': 'Settings',
     'chrome.extensions': 'Extensions',
     'toast.bgUpdated': 'Wallpaper updated',
+    'toast.bgSaveFailed': 'Could not save the background',
     'toast.bgChanged': 'Wallpaper changed to {name}',
     'toast.videoBgChanged': 'Video background changed to {name}',
     'toast.dailyOn': 'Daily wallpaper rotation enabled ☼',
     'toast.fillFields': 'Please fill in all required fields',
+    'toast.invalidUrl': 'That address is not valid',
     'toast.shortcutUpdated': 'Shortcut updated successfully',
     'toast.iconRestored': 'Original icon restored',
     'toast.shortcutAdded': 'Shortcut added successfully',
@@ -546,7 +592,7 @@ class NewTabController {
     // Used as a fallback when the user doesn't provide an icon URL or file —
     // tried in order until one loads (or one caches successfully on save).
     this.autoFaviconCandidates = [];
-    this._faviconDebounce = null;
+    this._resolvedSiteUrl = '';
 
     // Auto-fetched <title> support. _userEditedName flips to true on any
     // human keystroke so we never overwrite a name the user has typed;
@@ -662,37 +708,34 @@ class NewTabController {
       searchContainer: document.querySelector('.search-container')
     };
 
-    // Curated Popular Preset Shortcuts
-    // Icon URLs: prefer reliable hi-res sources. Google's s2 favicon service
-    // (`?sz=128`) is the safest fallback — always returns the brand favicon for
-    // a given domain. Wikipedia Commons paths are kept only for entries that
-    // are known to resolve; the rest use s2 to avoid broken images in the grid.
+    // Curated Popular Preset Shortcuts. Icons are bundled in icons/presets/ so
+    // opening the dialog makes no network requests.
     this.popularPresets = [
-      { name: 'Google', url: 'https://www.google.com', color: '#ffffff', icon: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg' },
-      { name: 'YouTube', url: 'https://www.youtube.com', color: '#ffffff', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg' },
-      { name: 'Gmail', url: 'https://mail.google.com', color: '#ffffff', icon: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg' },
-      { name: 'GitHub', url: 'https://github.com', color: '#ffffff', icon: 'https://www.google.com/s2/favicons?domain=github.com&sz=128' },
-      { name: 'Gemini', url: 'https://gemini.google.com', color: '#ffffff', icon: 'https://www.google.com/s2/favicons?domain=gemini.google.com&sz=128' },
-      { name: 'Drive', url: 'https://drive.google.com', color: '#ffffff', icon: 'https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg' },
-      { name: 'Calendar', url: 'https://calendar.google.com', color: '#ffffff', icon: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg' },
-      { name: 'Docs', url: 'https://docs.google.com', color: '#ffffff', icon: 'https://www.google.com/s2/favicons?domain=docs.google.com&sz=128' },
-      { name: 'Sheets', url: 'https://docs.google.com/spreadsheets', color: '#ffffff', icon: 'https://www.google.com/s2/favicons?domain=sheets.google.com&sz=128' },
-      { name: 'Presentations', url: 'https://docs.google.com/presentation', color: '#ffffff', icon: 'https://www.google.com/s2/favicons?domain=slides.google.com&sz=128' },
-      { name: 'Firebase', url: 'https://firebase.google.com', color: '#ffffff', icon: 'https://www.google.com/s2/favicons?domain=firebase.google.com&sz=128' },
-      { name: 'Facebook', url: 'https://www.facebook.com', color: '#1877f2', icon: 'https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg' },
-      { name: 'Instagram', url: 'https://www.instagram.com', color: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', icon: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Instagram_logo_2022.svg' },
-      { name: 'LinkedIn', url: 'https://www.linkedin.com', color: '#0077b5', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/81/LinkedIn_icon.svg' },
-      { name: 'X', url: 'https://x.com', color: '#000000', icon: 'https://www.google.com/s2/favicons?domain=x.com&sz=128' },
-      { name: 'Netflix', url: 'https://www.netflix.com', color: '#000000', icon: 'https://www.google.com/s2/favicons?domain=netflix.com&sz=128' }
+      { name: 'Google', url: 'https://www.google.com', color: '#ffffff', icon: 'icons/presets/google.svg' },
+      { name: 'YouTube', url: 'https://www.youtube.com', color: '#ffffff', icon: 'icons/presets/youtube.svg' },
+      { name: 'Gmail', url: 'https://mail.google.com', color: '#ffffff', icon: 'icons/presets/gmail.svg' },
+      { name: 'GitHub', url: 'https://github.com', color: '#ffffff', icon: 'icons/presets/github.svg' },
+      { name: 'Gemini', url: 'https://gemini.google.com', color: '#ffffff', icon: 'icons/presets/gemini.png' },
+      { name: 'Drive', url: 'https://drive.google.com', color: '#ffffff', icon: 'icons/presets/drive.svg' },
+      { name: 'Calendar', url: 'https://calendar.google.com', color: '#ffffff', icon: 'icons/presets/calendar.svg' },
+      { name: 'Docs', url: 'https://docs.google.com', color: '#ffffff', icon: 'icons/presets/docs.svg' },
+      { name: 'Sheets', url: 'https://docs.google.com/spreadsheets', color: '#ffffff', icon: 'icons/presets/sheets.svg' },
+      { name: 'Presentations', url: 'https://docs.google.com/presentation', color: '#ffffff', icon: 'icons/presets/slides.svg' },
+      { name: 'Firebase', url: 'https://firebase.google.com', color: '#ffffff', icon: 'icons/presets/firebase.png' },
+      { name: 'Facebook', url: 'https://www.facebook.com', color: '#1877f2', icon: 'icons/presets/facebook.svg' },
+      { name: 'Instagram', url: 'https://www.instagram.com', color: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', icon: 'icons/presets/instagram.svg' },
+      { name: 'LinkedIn', url: 'https://www.linkedin.com', color: '#0077b5', icon: 'icons/presets/linkedin.svg' },
+      { name: 'X', url: 'https://x.com', color: '#000000', icon: 'icons/presets/x.png' },
+      { name: 'Netflix', url: 'https://www.netflix.com', color: '#000000', icon: 'icons/presets/netflix.svg' }
     ];
 
     // Predefined Chrome System Shortcuts
     this.chromeSystemPages = [
-      { nameKey: 'chrome.bookmarks', url: 'chrome://bookmarks', color: '#4b5563', icon: 'https://www.google.com/favicon.ico' },
-      { nameKey: 'chrome.history', url: 'chrome://history', color: '#4b5563', icon: 'https://www.google.com/favicon.ico' },
-      { nameKey: 'chrome.downloads', url: 'chrome://downloads', color: '#4b5563', icon: 'https://www.google.com/favicon.ico' },
-      { nameKey: 'chrome.settings', url: 'chrome://settings', color: '#4b5563', icon: 'https://www.google.com/favicon.ico' },
-      { nameKey: 'chrome.extensions', url: 'chrome://extensions', color: '#4b5563', icon: 'https://www.google.com/favicon.ico' }
+      { nameKey: 'chrome.bookmarks', url: 'chrome://bookmarks', color: '#4b5563', icon: 'icons/presets/chrome.svg' },
+      { nameKey: 'chrome.history', url: 'chrome://history', color: '#4b5563', icon: 'icons/presets/chrome.svg' },
+      { nameKey: 'chrome.downloads', url: 'chrome://downloads', color: '#4b5563', icon: 'icons/presets/chrome.svg' },
+      { nameKey: 'chrome.settings', url: 'chrome://settings', color: '#4b5563', icon: 'icons/presets/chrome.svg' },
+      { nameKey: 'chrome.extensions', url: 'chrome://extensions', color: '#4b5563', icon: 'icons/presets/chrome.svg' }
     ];
   }
 
@@ -802,8 +845,9 @@ class NewTabController {
   };
 
   applyAccentPalette() {
-    const name = this.state.settings.accentPalette || 'lavender';
-    const hsl = NewTabController.ACCENT_PALETTES[name] || NewTabController.ACCENT_PALETTES.lavender;
+    const palettes = NewTabController.ACCENT_PALETTES;
+    const name = palettes[this.state.settings.accentPalette] ? this.state.settings.accentPalette : 'space';
+    const hsl = palettes[name];
     document.documentElement.style.setProperty('--accent', hsl);
 
     // Mark the active swatch (for both the visual ring and aria-checked).
@@ -829,7 +873,7 @@ class NewTabController {
         this.closeAboutDialog(); return;
       }
       if (this.dom.shortcutContextMenu.style.display === 'flex') {
-        this.hideContextMenu(); return;
+        this.hideContextMenu(true); return;
       }
       if (this.dom.settingsDrawer.classList.contains('active')) {
         this.toggleDrawer(false); return;
@@ -868,8 +912,10 @@ class NewTabController {
       return;
     }
 
-    // ⌘/Ctrl + N (or just "n" outside inputs) → open the Add Shortcut dialog.
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
+    // "n" → open the Add Shortcut dialog. Not ⌘/Ctrl + N: Chrome reserves it
+    // for "New window" and the page never receives the event.
+    if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey
+        && !this.isTypingTarget(e.target) && !this.isAnyOverlayOpen()) {
       e.preventDefault();
       this.openAddShortcutDialog();
       return;
@@ -884,7 +930,10 @@ class NewTabController {
     }
 
     // ←/→ paginate when there are multiple pages and no modal/input is active.
-    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !this.isTypingTarget(e.target)) {
+    // An empty search box counts as "not typing" (it often holds focus).
+    const emptySearch = e.target === this.dom.searchInput && !this.dom.searchInput.value;
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight')
+        && (!this.isTypingTarget(e.target) || emptySearch)) {
       if (this.isAnyOverlayOpen()) return;
       const totalPages = this.computePageCount();
       if (totalPages <= 1) return;
@@ -1087,11 +1136,18 @@ class NewTabController {
    * data URLs in the background. Runs once on load.
    */
   async cacheRemoteIcons() {
+    // Without host access the fetches would just fail CORS; the remote URL
+    // keeps working as a plain <img> in the meantime.
+    if (!(await this.hasHostAccess())) return;
     let changed = false;
     for (const s of this.state.shortcuts) {
-      if (/^https?:\/\//.test(s.icon || '')) {
+      if (!s.iconCacheFailed && /^https?:\/\//.test(s.icon || '')) {
         const dataUrl = await this.cacheIconUrl(s.icon);
-        if (dataUrl) { s.icon = dataUrl; changed = true; }
+        // Flag failures so a dead icon host isn't retried on every new tab.
+        // Editing the shortcut rebuilds it and clears the flag.
+        if (dataUrl) s.icon = dataUrl;
+        else s.iconCacheFailed = true;
+        changed = true;
       }
     }
     if (changed) {
@@ -1101,63 +1157,165 @@ class NewTabController {
   }
 
   /**
+   * Host access is optional (no install-time "read all your data" warning).
+   * It is requested the first time the user saves a shortcut, and only used
+   * to download favicons and page titles.
+   */
+  hasHostAccess() {
+    if (typeof chrome === 'undefined' || !chrome.permissions) return Promise.resolve(true);
+    return chrome.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false);
+  }
+
+  /**
+   * Must be called synchronously from a click handler (user gesture).
+   * Resolves true when access is (or already was) granted.
+   */
+  requestHostAccess() {
+    if (typeof chrome === 'undefined' || !chrome.permissions) return Promise.resolve(true);
+    return chrome.permissions.request({ origins: ['<all_urls>'] }).catch(() => false);
+  }
+
+  /**
    * Initialization use case
    */
   async init() {
-    // Load state from repository (independent keys — read them in parallel)
-    const [settings, shortcuts] = await Promise.all([
-      this.repository.getSettings(),
-      this.repository.getShortcuts()
-    ]);
-    this.state.settings = settings;
-    this.state.shortcuts = shortcuts;
+    try {
+      // Load state from repository (independent keys — read them in parallel)
+      const [settings, shortcuts] = await Promise.all([
+        this.repository.getSettings(),
+        this.repository.getShortcuts()
+      ]);
+      this.state.settings = settings;
+      this.state.shortcuts = shortcuts;
 
-    // Apply the language before rendering the interface
+      // Apply the language before rendering the interface
+      this.applyI18n();
+      this.applyIconRadius();
+      this.applyAccentPalette();
+      this.applyVersionLabel();
+
+      // Bind event listeners
+      this.bindEvents();
+      this.bindStorageSync();
+      this.initDialogTabs();
+
+      // Clock ticks on the minute boundary — the display is HH:MM, so a 1s
+      // interval would recompute an identical string 59 times out of 60.
+      this.updateClock();
+      if (this._clockTimeout) clearTimeout(this._clockTimeout);
+      const scheduleClockTick = () => {
+        // +50ms of slack so the tick always lands just AFTER the minute rolls.
+        this._clockTimeout = setTimeout(() => {
+          this.updateClock();
+          scheduleClockTick();
+        }, 60000 - (Date.now() % 60000) + 50);
+      };
+      scheduleClockTick();
+
+      // Re-evaluate the night dim every minute (in case the schedule boundary is crossed)
+      if (this._dimNightInterval) clearInterval(this._dimNightInterval);
+      this._dimNightInterval = setInterval(() => {
+        this.applyNightDim();
+        this.updateDimNightUI();
+      }, 60000);
+
+      // Initial renders. The wallpaper drawer renders lazily on first open:
+      // its thumbnails and video previews would otherwise load on every tab.
+      this.renderSettingsUI();
+      this.renderBackground();
+      this.renderSearchUI();
+      this.renderShortcuts();
+      this.renderPopularPresets();
+      this.renderChromeSystemPages();
+
+      await this.migrateLegacyImage();
+
+      // Convert remaining remote-URL icons to local data URLs in the background
+      this.cacheRemoteIcons();
+    } catch (err) {
+      // Never leave the page stuck on the loading skeleton.
+      console.error('[TabLine] Init failed:', err);
+      if (!this.dom.shortcutsGrid.querySelector('.shortcut-card')) this.renderEmptyState();
+    } finally {
+      document.body.style.opacity = '1';
+    }
+  }
+
+  /**
+   * Pre-0.9.3 stored an uploaded background image as base64 inside settings.
+   * Move it to IndexedDB so settings stay small.
+   */
+  async migrateLegacyImage() {
+    const s = this.state.settings;
+    if (!s.bgFileBase64) return;
+    try {
+      const blob = await (await fetch(s.bgFileBase64)).blob();
+      await this.idbPut('image', blob);
+      delete s.bgFileBase64;
+      await this.repository.saveSettings(s);
+    } catch (err) {
+      console.error('[TabLine] Could not migrate the background image:', err);
+    }
+  }
+
+  /**
+   * Re-applies the whole state to the UI. Used after import/reset and when
+   * another tab changes storage. Re-mounts the background only when a
+   * background-related field changed, so a playing video doesn't restart.
+   */
+  refreshAllUI(prevSettings) {
+    const BG_KEYS = ['bgProvider', 'bgStaticUrl', 'bgCustomUrl', 'bgVideoUrl', 'bgMediaRev'];
+    const bgChanged = !prevSettings
+      || BG_KEYS.some((k) => prevSettings[k] !== this.state.settings[k]);
     this.applyI18n();
     this.applyIconRadius();
     this.applyAccentPalette();
-    this.applyVersionLabel();
-
-    // Bind event listeners
-    this.bindEvents();
-    this.initDialogTabs();
-
-    // Clock ticks on the minute boundary — the display is HH:MM, so a 1s
-    // interval would recompute an identical string 59 times out of 60.
-    this.updateClock();
-    if (this._clockInterval) clearInterval(this._clockInterval);
-    this._clockInterval = null;
-    if (this._clockTimeout) clearTimeout(this._clockTimeout);
-    const scheduleClockTick = () => {
-      // +50ms of slack so the tick always lands just AFTER the minute rolls.
-      this._clockTimeout = setTimeout(() => {
-        this.updateClock();
-        scheduleClockTick();
-      }, 60000 - (Date.now() % 60000) + 50);
-    };
-    scheduleClockTick();
-
-    // Re-evaluate the night dim every minute (in case the schedule boundary is crossed)
-    if (this._dimNightInterval) clearInterval(this._dimNightInterval);
-    this._dimNightInterval = setInterval(() => {
-      this.applyNightDim();
-      this.updateDimNightUI();
-    }, 60000);
-
-    // Initial renders
     this.renderSettingsUI();
-    this.renderBackground();
+    if (bgChanged) this.renderBackground();
+    else this.applyNightDim();
     this.renderSearchUI();
     this.renderShortcuts();
-    this.renderPopularPresets();
     this.renderChromeSystemPages();
     this.renderWallpaperDrawer();
+    this.updateClock();
+  }
 
-    // Convert remaining remote-URL icons to local data URLs in the background
-    this.cacheRemoteIcons();
-
-    // Show visual fade in
-    document.body.style.opacity = '1';
+  /**
+   * Every open new tab holds its own copy of the state, and saves write the
+   * whole blob. Without this, a save in an older tab would silently undo what
+   * a newer tab saved. Our own writes echo back here too; they are skipped
+   * because the incoming value equals the in-memory state.
+   */
+  bindStorageSync() {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.onChanged) return;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local') return;
+      // chrome.storage hands objects back with sorted keys, so compare with a
+      // key-sorted serialization or every own write would look like a change.
+      const stable = (v) => JSON.stringify(v, (_, x) => (x && typeof x === 'object' && !Array.isArray(x))
+        ? Object.fromEntries(Object.keys(x).sort().map((k) => [k, x[k]]))
+        : x);
+      const same = (a, b) => stable(a) === stable(b);
+      let dirty = false;
+      const prevSettings = { ...this.state.settings };
+      if (changes.settings && changes.settings.newValue
+          && !same(changes.settings.newValue, this.state.settings)) {
+        this.state.settings = this.repository.migrateSettings({
+          ...this.repository.getDefaultSettings(), ...changes.settings.newValue
+        });
+        dirty = true;
+      }
+      if (changes.shortcuts && Array.isArray(changes.shortcuts.newValue)
+          && !same(changes.shortcuts.newValue, this.state.shortcuts)) {
+        this.state.shortcuts = changes.shortcuts.newValue;
+        dirty = true;
+      }
+      if (!dirty) return;
+      // ponytail: a remote change landing mid-drag is applied after the drop
+      // re-render; the drop itself may then reorder by stale indexes (rare).
+      if (this._drag || this._reorderAnim) return;
+      this.refreshAllUI(prevSettings);
+    });
   }
 
   /**
@@ -1179,31 +1337,50 @@ class NewTabController {
     }
 
     // Mouse wheel / trackpad swipe over the grid → flip pages.
-    // Throttled so a single wheel tick advances at most one page.
+    // One flip per gesture: after a flip, wheel events are ignored until they
+    // pause for 150ms. A time throttle alone let trackpad inertia (which keeps
+    // firing for ~1s) flip two or three pages per swipe.
     if (this.dom.shortcutsGridContainer) {
-      this._lastWheelPageAt = 0;
+      this._lastWheelAt = 0;
+      this._wheelLocked = false;
       this.dom.shortcutsGridContainer.addEventListener('wheel', (e) => {
         const totalPages = this.computePageCount();
         if (totalPages <= 1) return;
+        e.preventDefault();
+
+        const now = Date.now();
+        const gestureEnded = now - this._lastWheelAt > 150;
+        this._lastWheelAt = now;
+        if (this._wheelLocked && !gestureEnded) return;
+        this._wheelLocked = false;
 
         const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
         if (Math.abs(delta) < 4) return;
 
-        e.preventDefault();
-
-        const now = Date.now();
-        // Match the page-flip animation (320ms) so the next scroll lands right
-        // as the previous slide finishes — feels continuous, not laggy.
-        if (now - this._lastWheelPageAt < 280) return;
-
-        const direction = delta > 0 ? 1 : -1;
-        const nextPage = this.state.currentPage + direction;
+        const nextPage = this.state.currentPage + (delta > 0 ? 1 : -1);
         if (nextPage < 0 || nextPage >= totalPages) return;
 
-        this._lastWheelPageAt = now;
+        this._wheelLocked = true;
         this.goToPage(nextPage);
       }, { passive: false });
     }
+
+    // Background video: don't decode frames for a tab nobody is looking at.
+    document.addEventListener('visibilitychange', () => {
+      const video = this.dom.bgImage.querySelector('video');
+      if (!video) return;
+      if (document.hidden) video.pause();
+      else video.play().catch(() => {});
+    });
+
+    // Coming back with the Back button restores this page from the bfcache
+    // with the "launching" pulse and progress bar still running.
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      this.dom.navProgress.classList.remove('active');
+      this.dom.shortcutsGrid.querySelectorAll('.is-launching')
+        .forEach((el) => el.classList.remove('is-launching'));
+    });
 
     // Pagination bar (delegated). Click navigates; dblclick renames the page.
     this.bindPaginationEvents();
@@ -1388,18 +1565,15 @@ class NewTabController {
       this.toggleBgInputFields(value);
       await this.repository.saveSettings(this.state.settings);
       this.renderBackground();
-      this.renderWallpaperDrawer();
       // Wallpaper / Video gallery: close the side panel and open the visual drawer
       if (value === 'static' || value === 'video') {
-        this.toggleDrawer(false);
-        this.dom.wallpaperDrawer.classList.add('active');
+        this.openWallpaperDrawer();
       }
     });
 
     this.dom.bgUrlInput.addEventListener('change', async (e) => {
       const val = e.target.value.trim();
       this.state.settings.bgCustomUrl = val;
-      this.state.settings.bgUrl = val;
       await this.repository.saveSettings(this.state.settings);
       this.renderBackground();
     });
@@ -1407,43 +1581,33 @@ class NewTabController {
     this.dom.bgVideoInput.addEventListener('change', async (e) => {
       const val = e.target.value.trim();
       this.state.settings.bgVideoUrl = val;
-      this.state.settings.bgUrl = val;
       this.state.settings.bgProvider = 'video-url';
       await this.repository.saveSettings(this.state.settings);
       this.renderBackground();
     });
 
-    // Upload video from disk: stored in IndexedDB (no ~10 MB chrome.storage cap)
-    this.dom.bgVideoFileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
+    // Uploaded videos and images live in IndexedDB, not in chrome.storage:
+    // they easily exceed its quota, and keeping them out of the settings blob
+    // keeps every settings write (and cross-tab sync) small.
+    const uploadBackground = async (file, key, provider, labelEl) => {
       if (!file) return;
       try {
-        await this.idbSaveVideo(file);
-        this.state.settings.bgProvider = 'video-file';
+        await this.idbPut(key, file);
+        this.state.settings.bgProvider = provider;
+        this.state.settings.bgMediaRev = (this.state.settings.bgMediaRev || 0) + 1;
         await this.repository.saveSettings(this.state.settings);
-        this.dom.bgVideoFileLabel.textContent = file.name;
+        labelEl.textContent = file.name;
         this.renderBackground();
         this.showToast(this.t('toast.bgUpdated'));
       } catch (err) {
-        console.error('Failed to save video:', err);
-        this.showToast(this.t('settings.videoSaveFailed'));
+        console.error('Failed to save background file:', err);
+        this.showToast(this.t('toast.bgSaveFailed'));
       }
-    });
-
-    this.dom.bgFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      this.dom.fileUploadLabel.textContent = file.name;
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        this.state.settings.bgFileBase64 = event.target.result;
-        await this.repository.saveSettings(this.state.settings);
-        this.renderBackground();
-        this.showToast(this.t('toast.bgUpdated'));
-      };
-      reader.readAsDataURL(file);
-    });
+    };
+    this.dom.bgVideoFileInput.addEventListener('change', (e) =>
+      uploadBackground(e.target.files[0], 'current', 'video-file', this.dom.bgVideoFileLabel));
+    this.dom.bgFileInput.addEventListener('change', (e) =>
+      uploadBackground(e.target.files[0], 'image', 'custom-file', this.dom.fileUploadLabel));
 
     // Add Shortcut Modal color selection swatches
     this.dom.colorSwatches.querySelectorAll('.color-swatch').forEach(swatch => {
@@ -1466,22 +1630,35 @@ class NewTabController {
     // Debounced so we don't recompute on every keystroke. The resolved URL
     // only feeds the preview and the save fallback — it never writes into
     // the manual icon input, so the user's own choice always wins.
+    // Resolution runs when the URL is committed (blur/Enter → 'change', or a
+    // paste), never per keystroke: typing "github.com" must not send requests
+    // to the half-typed hosts on the way ("github.co" is someone else's site).
+    const resolveSiteUrl = () => {
+      const url = this.dom.shortcutUrl.value.trim();
+      if (url === this._resolvedSiteUrl) return;
+      this._resolvedSiteUrl = url;
+      this.autoFaviconCandidates = this.resolveFaviconCandidates(url);
+      this.updateLivePreview();
+      // The helper bails if the user typed a name or the URL isn't fetchable.
+      this.tryFetchPageTitle(url);
+    };
+    this.dom.shortcutUrl.addEventListener('change', resolveSiteUrl);
+    this.dom.shortcutUrl.addEventListener('paste', () => setTimeout(resolveSiteUrl, 0));
     this.dom.shortcutUrl.addEventListener('input', () => {
-      clearTimeout(this._faviconDebounce);
-      this._faviconDebounce = setTimeout(() => {
-        const url = this.dom.shortcutUrl.value.trim();
-        this.autoFaviconCandidates = this.resolveFaviconCandidates(url);
-        this.updateLivePreview();
-        // Kick off the page-title fetch alongside favicon resolution. The
-        // helper itself bails if the user has typed in the name field or if
-        // the URL isn't fetchable.
-        this.tryFetchPageTitle(url);
-      }, 300);
       // Editing the URL again is a fresh intent — drop any prior "keep the
       // original" pin so the new auto-favicon can paint.
       this._iconRestoredToOriginal = false;
-      // Toggle the chip immediately; this branch is a pure DOM read/write.
       this.updateIconChangedHint();
+    });
+
+    // Enter in any text field of the dialog saves (there is no <form>).
+    this.dom.shortcutDialog.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      if (e.target.tagName !== 'INPUT' || e.target.type === 'file' || e.target.type === 'checkbox') return;
+      e.preventDefault();
+      // Commit the URL first so its favicon is part of what gets saved.
+      if (e.target === this.dom.shortcutUrl) resolveSiteUrl();
+      this.saveShortcutUseCase();
     });
 
     this.dom.iconRestoreBtn.addEventListener('click', () => this.restoreOriginalIconUseCase());
@@ -1506,6 +1683,21 @@ class NewTabController {
     // Modal Add Shortcut Actions
     this.dom.dialogCancelBtn.addEventListener('click', () => this.toggleShortcutDialog(false));
     this.dom.dialogSaveBtn.addEventListener('click', () => this.saveShortcutUseCase());
+
+    // Context menu: ↑/↓/Home/End move between items, Tab closes it.
+    this.dom.shortcutContextMenu.addEventListener('keydown', (e) => {
+      const items = [...this.dom.shortcutContextMenu.querySelectorAll('[role="menuitem"]')];
+      const i = items.indexOf(document.activeElement);
+      let next = -1;
+      if (e.key === 'ArrowDown') next = (i + 1) % items.length;
+      else if (e.key === 'ArrowUp') next = i <= 0 ? items.length - 1 : i - 1;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = items.length - 1;
+      else if (e.key === 'Tab') { e.preventDefault(); this.hideContextMenu(true); return; }
+      if (next === -1) return;
+      e.preventDefault();
+      items[next].focus();
+    });
 
     // Context Menu click events
     this.dom.ctxDeleteBtn.addEventListener('click', () => this.deleteShortcutUseCase(this.activeContextShortcutId));
@@ -1575,11 +1767,16 @@ class NewTabController {
    */
   toggleWallpaperDrawer() {
     const open = !this.dom.wallpaperDrawer.classList.contains('active');
-    this.dom.wallpaperDrawer.classList.toggle('active', open);
-    if (open) {
-      this.dom.settingsDrawer.classList.remove('active');
-      this.setWallpaperTab(this.tabFromProvider(this.state.settings.bgProvider));
-    }
+    if (open) this.openWallpaperDrawer();
+    else this.dom.wallpaperDrawer.classList.remove('active');
+  }
+
+  openWallpaperDrawer() {
+    this._wpDrawerOpened = true;
+    this.renderWallpaperDrawer();
+    this.dom.wallpaperDrawer.classList.add('active');
+    this.dom.settingsDrawer.classList.remove('active');
+    this.setWallpaperTab(this.tabFromProvider(this.state.settings.bgProvider));
   }
 
   /**
@@ -1615,7 +1812,8 @@ class NewTabController {
       this.dom.shortcutDialog.classList.add('active');
       this.dom.shortcutDialog.setAttribute('aria-hidden', 'false');
       this.installFocusTrap(this.dom.shortcutDialog);
-      this.dom.shortcutName.focus();
+      // URL first: it's the first field, and filling it auto-suggests the name.
+      this.dom.shortcutUrl.focus();
     } else {
       // Move focus OUT of the dialog BEFORE flagging it inert/aria-hidden.
       // Calling .focus() on a non-focusable previouslyFocused (e.g. <body>)
@@ -1706,7 +1904,7 @@ class NewTabController {
     this.dom.iconFileLabel.textContent = this.t('dialog.selectFile');
     // Drop any auto-favicon carried over from a previous dialog session.
     this.autoFaviconCandidates = [];
-    clearTimeout(this._faviconDebounce);
+    this._resolvedSiteUrl = '';
     // Reset the auto-title gate. The form starts empty, so the next URL settle
     // is allowed to populate the name field.
     this._userEditedName = false;
@@ -1908,9 +2106,31 @@ class NewTabController {
       this.dom.bgImage.style.backgroundImage = '';
     }
 
-    let bgUrlToApply = '';
+    // Any blob URL from a previous render belongs to elements we just removed.
+    if (this._currentBlobUrl) {
+      URL.revokeObjectURL(this._currentBlobUrl);
+      this._currentBlobUrl = null;
+    }
 
-    if (settings.bgProvider === 'daily') {
+    const provider = settings.bgProvider;
+
+    if (provider === 'video-file' || provider === 'custom-file') {
+      // User upload stored in IndexedDB ('current' = video, 'image' = image).
+      const isVideo = provider === 'video-file';
+      this.idbGetURL(isVideo ? 'current' : 'image').then((url) => {
+        if (!url) return;
+        if (gen !== this._bgGen) {
+          // A newer render won the race — don't mount, don't leak the blob.
+          URL.revokeObjectURL(url);
+          return;
+        }
+        this._currentBlobUrl = url;
+        if (isVideo) this.mountBackgroundVideo(url);
+        else this.mountBackgroundImage(url, gen);
+      }).catch((err) => console.error('Error reading local background:', err));
+    } else if (provider === 'video' || provider === 'video-url') {
+      this.mountBackgroundVideo(settings.bgVideoUrl || 'wallpapers/vid_rain.mp4');
+    } else if (provider === 'daily') {
       // Random but stable image for the whole day: the seed is the date,
       // so it changes every day and doesn't flicker between new tabs.
       const now = new Date();
@@ -1918,62 +2138,31 @@ class NewTabController {
       let h = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b);
       h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
       h = h ^ (h >>> 16);
-      // Rotates among every available wallpaper (not just bg1-bg6)
-      const wp = CURATED_WALLPAPERS[(h >>> 0) % CURATED_WALLPAPERS.length];
-      bgUrlToApply = wp.file;
-    } else if (settings.bgProvider === 'static') {
-      bgUrlToApply = settings.bgStaticUrl || 'wallpapers/bg1.png';
-    } else if (settings.bgProvider === 'custom-url') {
-      bgUrlToApply = settings.bgCustomUrl || settings.bgUrl;
-    } else if (settings.bgProvider === 'custom-file' && settings.bgFileBase64) {
-      bgUrlToApply = settings.bgFileBase64;
+      this.mountBackgroundImage(CURATED_WALLPAPERS[(h >>> 0) % CURATED_WALLPAPERS.length].file, gen);
+    } else if (provider === 'static') {
+      this.mountBackgroundImage(settings.bgStaticUrl || 'wallpapers/bg1.webp', gen);
+    } else if (provider === 'custom-url') {
+      this.mountBackgroundImage(settings.bgCustomUrl, gen);
     }
+  }
 
-    if (settings.bgProvider === 'video-file') {
-      // User-uploaded video, stored in IndexedDB. Revoke the previous blob URL
-      // (if any) so we don't leak memory each time the background re-renders.
-      if (this._currentVideoBlobUrl) {
-        URL.revokeObjectURL(this._currentVideoBlobUrl);
-        this._currentVideoBlobUrl = null;
-      }
-      this.idbGetVideoURL().then((url) => {
-        if (!url) return;
-        if (gen !== this._bgGen) {
-          // A newer render won the race — don't mount, don't leak the blob.
-          URL.revokeObjectURL(url);
-          return;
-        }
-        this._currentVideoBlobUrl = url;
-        this.mountBackgroundVideo(url);
-      }).catch((err) => console.error('Error reading local video:', err));
-    } else if (settings.bgProvider === 'video' || settings.bgProvider === 'video-url') {
-      // Leaving 'video-file' for another provider — release the held blob URL.
-      if (this._currentVideoBlobUrl) {
-        URL.revokeObjectURL(this._currentVideoBlobUrl);
-        this._currentVideoBlobUrl = null;
-      }
-      const videoUrl = settings.bgVideoUrl || settings.bgUrl || 'wallpapers/vid_rain.mp4';
-      this.mountBackgroundVideo(videoUrl);
-    } else if (bgUrlToApply) {
-      // Same: release the blob URL if we're switching from a video-file background.
-      if (this._currentVideoBlobUrl) {
-        URL.revokeObjectURL(this._currentVideoBlobUrl);
-        this._currentVideoBlobUrl = null;
-      }
-      const img = new Image();
-      img.src = bgUrlToApply;
-      img.onload = () => {
-        if (gen !== this._bgGen) return; // stale — a newer background already rendered
-        // Escape backslashes and single quotes so a hostile URL can't break out
-        // of the url('...') CSS literal and inject extra declarations.
-        const safeUrl = bgUrlToApply.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        this.dom.bgImage.style.backgroundImage = `url('${safeUrl}')`;
-      };
-      img.onerror = () => {
-        console.error('Error loading image background:', bgUrlToApply);
-        // Fallback gradient is already displaying
-      };
-    }
+  /**
+   * Preloads an image and paints it as the background once decoded, unless a
+   * newer renderBackground() has run since (`gen` mismatch).
+   */
+  mountBackgroundImage(url, gen) {
+    if (!url) return;
+    const img = new Image();
+    img.onload = () => {
+      if (gen !== this._bgGen) return;
+      // Escape backslashes and single quotes so a hostile URL can't break out
+      // of the url('...') CSS literal and inject extra declarations.
+      const safeUrl = url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      this.dom.bgImage.style.backgroundImage = `url('${safeUrl}')`;
+    };
+    // The fallback gradient is already displaying.
+    img.onerror = () => console.error('Error loading image background:', url);
+    img.src = url;
   }
 
   /**
@@ -2020,27 +2209,28 @@ class NewTabController {
     });
   }
 
-  async idbSaveVideo(blob) {
+  /**
+   * Runs `fn(store)` in one transaction on the media store and resolves with
+   * the value `fn` returns via its request (or true for writes).
+   * Keys: 'current' = uploaded video (pre-0.9.3 name), 'image' = uploaded image.
+   */
+  async idbTx(mode, fn) {
     const db = await this.openVideoDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction('video', 'readwrite');
-      tx.objectStore('video').put(blob, 'current');
-      tx.oncomplete = () => { db.close(); resolve(true); };
+      const tx = db.transaction('video', mode);
+      const req = fn(tx.objectStore('video'));
+      tx.oncomplete = () => { db.close(); resolve(req && 'result' in req ? req.result : true); };
       tx.onerror = () => { db.close(); reject(tx.error); };
     });
   }
 
-  async idbGetVideoURL() {
-    const db = await this.openVideoDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('video', 'readonly');
-      const req = tx.objectStore('video').get('current');
-      req.onsuccess = () => {
-        db.close();
-        resolve(req.result ? URL.createObjectURL(req.result) : null);
-      };
-      req.onerror = () => { db.close(); reject(req.error); };
-    });
+  idbPut(key, blob) { return this.idbTx('readwrite', (store) => store.put(blob, key)); }
+
+  idbClear() { return this.idbTx('readwrite', (store) => store.clear()); }
+
+  async idbGetURL(key) {
+    const blob = await this.idbTx('readonly', (store) => store.get(key));
+    return blob ? URL.createObjectURL(blob) : null;
   }
 
   /**
@@ -2193,16 +2383,20 @@ class NewTabController {
    * bento containers.
    */
   buildShortcutCard(shortcut, globalIdx) {
-    const card = document.createElement('a');
+    // The card is a plain container; the link and the options button are
+    // siblings inside it (a <button> nested in an <a> is invalid HTML and
+    // screen readers announce the whole thing as one link).
+    const card = document.createElement('div');
     card.className = 'shortcut-card';
-    card.href = shortcut.url;
-    card.draggable = false; // prevent the native <a> URL drag
+    const link = document.createElement('a');
+    link.className = 'shortcut-link';
+    link.href = shortcut.url;
+    link.draggable = false; // prevent the native <a> URL drag
 
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.shortcut-menu-btn')) {
-        e.preventDefault();
-        return;
-      }
+    const isChromeUrl = shortcut.url.startsWith('chrome://');
+    const canUseTabs = typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create;
+
+    link.addEventListener('click', (e) => {
       if (this._didDrag) {
         e.preventDefault();
         return;
@@ -2210,29 +2404,37 @@ class NewTabController {
 
       const isPlainClick = e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey;
 
-      // Modifier-clicks (middle / ⌘ / Ctrl / Shift) let the native <a> open
-      // in a new tab/window — no navigation in the current tab, so no
-      // animation needed here.
-      if (!isPlainClick) return;
+      // Modifier-clicks (⌘ / Ctrl / Shift) let the native <a> open in a new
+      // tab/window — except chrome:// links, which Chrome blocks from pages.
+      if (!isPlainClick) {
+        if (isChromeUrl && canUseTabs) {
+          e.preventDefault();
+          chrome.tabs.create({ url: shortcut.url, active: e.shiftKey });
+        }
+        return;
+      }
 
-      // Plain click → the current tab is about to navigate. Intercept,
-      // show the "launching" pulse for a tick, THEN navigate so the user
-      // gets visible feedback (otherwise the browser starts loading
-      // immediately and the animation never gets a frame to render).
+      // Plain click → show the "launching" pulse for a frame, then navigate.
+      // The animation keeps running until the destination page paints, so a
+      // short delay is enough for visible feedback.
       e.preventDefault();
       this.showNavProgress(card);
       const target = shortcut.url;
-      // 380ms ≈ time for the icon to complete one full pulse + ripple
-      // before the page swaps. Slightly slower than instant nav but
-      // explicit user feedback that the click registered.
       setTimeout(() => {
-        if (target.startsWith('chrome://') && typeof chrome !== 'undefined'
-            && chrome.tabs && chrome.tabs.update) {
+        if (isChromeUrl && canUseTabs) {
           chrome.tabs.update({ url: target });
         } else {
           window.location.href = target;
         }
-      }, 380);
+      }, 150);
+    });
+
+    // Middle-click fires 'auxclick', not 'click'.
+    link.addEventListener('auxclick', (e) => {
+      if (e.button === 1 && isChromeUrl && canUseTabs) {
+        e.preventDefault();
+        chrome.tabs.create({ url: shortcut.url, active: false });
+      }
     });
 
     // Glass wrapper
@@ -2280,8 +2482,11 @@ class NewTabController {
 
     // MD3 Tonal "more options" button (kebab — opens the full context menu)
     const menuBtn = document.createElement('button');
+    menuBtn.type = 'button';
     menuBtn.className = 'shortcut-menu-btn';
     menuBtn.title = this.t('shortcut.options');
+    menuBtn.setAttribute('aria-label', `${this.t('shortcut.options')}: ${shortcut.name}`);
+    menuBtn.setAttribute('aria-haspopup', 'menu');
     menuBtn.appendChild(this.createKebabSvg());
     menuBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -2293,9 +2498,10 @@ class NewTabController {
     title.className = 'shortcut-title';
     title.textContent = shortcut.name;
 
-    card.appendChild(iconWrapper);
+    link.appendChild(iconWrapper);
+    link.appendChild(title);
+    card.appendChild(link);
     card.appendChild(menuBtn);
-    card.appendChild(title);
 
     // Drag-sort + custom right-click menu.
     card.dataset.index = globalIdx;
@@ -2725,11 +2931,12 @@ class NewTabController {
    * Wallpaper Drawer carrusel cards renderer
    */
   renderWallpaperDrawer() {
+    // Rendered on first open only; see openWallpaperDrawer().
+    if (!this._wpDrawerOpened) return;
     this.dom.wallpaperStaticList.replaceChildren();
     this.dom.wallpaperLiveList.replaceChildren();
     
     const activeProvider = this.state.settings.bgProvider;
-    const activeUrl = this.state.settings.bgUrl;
 
     // Highlight daily rotation active state
     if (activeProvider === 'daily') {
@@ -2741,11 +2948,12 @@ class NewTabController {
     // Render Static Wallpapers
     this.staticWallpapers.forEach(wp => {
       const card = document.createElement('div');
-      card.className = `wallpaper-card ${activeProvider === 'static' && (this.state.settings.bgStaticUrl === wp.file || activeUrl === wp.file) ? 'active' : ''}`;
+      card.className = `wallpaper-card ${activeProvider === 'static' && this.state.settings.bgStaticUrl === wp.file ? 'active' : ''}`;
       
       const thumb = document.createElement('div');
       thumb.className = 'wp-card-thumb';
-      thumb.style.backgroundImage = `url('${wp.file}')`;
+      // 320px thumbnails: the full wallpapers are ~150 KB–300 KB each.
+      thumb.style.backgroundImage = `url('${wp.file.replace('wallpapers/', 'wallpapers/thumbs/')}')`;
 
       const info = document.createElement('div');
       info.className = 'wp-card-info';
@@ -2761,8 +2969,6 @@ class NewTabController {
       card.addEventListener('click', async () => {
         this.state.settings.bgProvider = 'static';
         this.state.settings.bgStaticUrl = wp.file;
-        this.state.settings.bgUrl = wp.file;
-        this.state.settings.bgFileBase64 = '';
         
         await this.repository.saveSettings(this.state.settings);
         
@@ -2779,7 +2985,7 @@ class NewTabController {
     // Render Live Videos
     this.liveVideos.forEach(vid => {
       const card = document.createElement('div');
-      card.className = `wallpaper-card ${activeProvider === 'video' && (this.state.settings.bgVideoUrl === vid.file || activeUrl === vid.file) ? 'active' : ''}`;
+      card.className = `wallpaper-card ${activeProvider === 'video' && this.state.settings.bgVideoUrl === vid.file ? 'active' : ''}`;
       
       const thumb = document.createElement('div');
       thumb.className = 'wp-card-thumb';
@@ -2830,8 +3036,6 @@ class NewTabController {
       card.addEventListener('click', async () => {
         this.state.settings.bgProvider = 'video';
         this.state.settings.bgVideoUrl = vid.file;
-        this.state.settings.bgUrl = vid.file;
-        this.state.settings.bgFileBase64 = '';
         
         await this.repository.saveSettings(this.state.settings);
         
@@ -2851,8 +3055,6 @@ class NewTabController {
     
     this.dom.wpCardDaily.addEventListener('click', async () => {
       this.state.settings.bgProvider = 'daily';
-      this.state.settings.bgUrl = '';
-      this.state.settings.bgFileBase64 = '';
 
       await this.repository.saveSettings(this.state.settings);
       
@@ -2872,7 +3074,7 @@ class NewTabController {
    * Show elegant temporary toast notification
    */
   showToast(message) {
-    this._clearToastAction();
+    this._clearToastAction(true);
     // Plain notification → show the × so the user can dismiss it manually.
     if (this.dom.toastCloseBtn) this.dom.toastCloseBtn.style.display = '';
     this.dom.toastMessage.textContent = message;
@@ -2886,10 +3088,11 @@ class NewTabController {
   /**
    * Toast with an action button (e.g. "Undo"). The callback fires when the
    * user clicks the action. The toast stays visible for 6s instead of 3s
-   * so the user has time to react.
+   * so the user has time to react. `onExpire` (optional) fires instead if
+   * the toast goes away without the action: timeout, × or a newer toast.
    */
-  showToastWithAction(message, actionLabel, onAction) {
-    this._clearToastAction();
+  showToastWithAction(message, actionLabel, onAction, onExpire) {
+    this._clearToastAction(true);
     this.dom.toastMessage.textContent = message;
 
     // MD3 Snackbar with action: hide the × — the action IS the dismiss.
@@ -2901,26 +3104,30 @@ class NewTabController {
     btn.textContent = actionLabel;
     btn.addEventListener('click', () => {
       this.dom.toast.classList.remove('show');
-      this._clearToastAction();
+      this._clearToastAction(false);
       if (this._toastTimeout) { clearTimeout(this._toastTimeout); this._toastTimeout = null; }
       onAction();
     });
     this.dom.toast.appendChild(btn);
     this._toastActionBtn = btn;
+    this._toastOnExpire = onExpire || null;
 
     this.dom.toast.classList.add('show');
     if (this._toastTimeout) clearTimeout(this._toastTimeout);
     this._toastTimeout = setTimeout(() => {
       this.dom.toast.classList.remove('show');
-      this._clearToastAction();
+      this._clearToastAction(true);
     }, 6000);
   }
 
-  _clearToastAction() {
+  _clearToastAction(expired) {
     if (this._toastActionBtn) {
       this._toastActionBtn.remove();
       this._toastActionBtn = null;
     }
+    const onExpire = this._toastOnExpire;
+    this._toastOnExpire = null;
+    if (expired && onExpire) onExpire();
   }
 
   /**
@@ -2932,7 +3139,7 @@ class NewTabController {
       clearTimeout(this._toastTimeout);
       this._toastTimeout = null;
     }
-    this._clearToastAction();
+    this._clearToastAction(true);
   }
 
   /**
@@ -2973,10 +3180,20 @@ class NewTabController {
     const maxY = window.innerHeight - mh - margin;
     menu.style.left = `${Math.max(margin, Math.min(x, maxX))}px`;
     menu.style.top = `${Math.max(margin, Math.min(y, maxY))}px`;
+
+    // Keyboard support: Esc returns focus to the trigger. A keyboard-activated
+    // kebab (click with detail 0) focuses the first item; a mouse open focuses
+    // the menu itself so arrows still work without painting a focus ring.
+    this._ctxReturnFocus = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    const first = menu.querySelector('[role="menuitem"]');
+    const byKeyboard = event.type === 'click' && event.detail === 0;
+    (byKeyboard && first ? first : menu).focus({ preventScroll: true });
   }
 
-  hideContextMenu() {
+  hideContextMenu(restoreFocus = false) {
     this.dom.shortcutContextMenu.style.display = 'none';
+    if (restoreFocus && this._ctxReturnFocus) this._ctxReturnFocus.focus();
+    this._ctxReturnFocus = null;
   }
 
   /**
@@ -3044,7 +3261,7 @@ class NewTabController {
     // Clear any auto-favicon from a previous dialog session — edit starts
     // from the shortcut's stored icon, not a stale URL resolution.
     this.autoFaviconCandidates = [];
-    clearTimeout(this._faviconDebounce);
+    this._resolvedSiteUrl = shortcut.url || '';
     // Snapshot the URL+icon at open time so the user can restore them later
     // and so we know when the URL changes.
     this._editOriginalUrl = shortcut.url || '';
@@ -3098,11 +3315,33 @@ class NewTabController {
    */
   async saveShortcutUseCase() {
     const name = this.dom.shortcutName.value.trim();
-    const url = this.dom.shortcutUrl.value.trim();
-    
-    if (!name || !url) {
+    const rawUrl = this.dom.shortcutUrl.value.trim();
+
+    if (!name || !rawUrl) {
       this.showToast(this.t('toast.fillFields'));
       return;
+    }
+    const url = Shortcut.normalizeUrl(rawUrl);
+    if (!url) {
+      this.showToast(this.t('toast.invalidUrl'));
+      this.dom.shortcutUrl.focus();
+      return;
+    }
+    if (this._saving) return; // Enter + click, or a double click
+    this._saving = true;
+
+    // Host access (to download and cache the icon) is asked once, on the
+    // first save. The request must start before any await to keep the user
+    // gesture. If declined, icons stay as remote URLs and still display.
+    let accessPromise;
+    if (!this.state.settings.hostAccessAsked) {
+      accessPromise = this.requestHostAccess().then(async (granted) => {
+        this.state.settings.hostAccessAsked = true;
+        await this.repository.saveSettings(this.state.settings);
+        return granted;
+      });
+    } else {
+      accessPromise = this.hasHostAccess();
     }
 
     const activeColorSwatch = this.dom.colorSwatches.querySelector('.color-swatch.active');
@@ -3131,9 +3370,13 @@ class NewTabController {
 
     const save = async (iconDataUrl = '') => {
       let finalIcon = iconDataUrl || iconUrl || '';
+      const hasAccess = await accessPromise;
 
       // If the icon is a remote URL, download it and store it locally
-      if (/^https?:\/\//.test(finalIcon)) {
+      if (!hasAccess) {
+        // Can't download: keep the remote URL (manual or the s2 fallback).
+        if (!finalIcon && autoCandidates.length > 0) finalIcon = autoCandidates[autoCandidates.length - 1];
+      } else if (/^https?:\/\//.test(finalIcon)) {
         const cached = await this.cacheIconUrl(finalIcon);
         if (cached) finalIcon = cached;
       } else if (!finalIcon && autoCandidates.length > 0) {
@@ -3144,6 +3387,9 @@ class NewTabController {
           const cached = await this.cacheIconUrl(url);
           if (cached) { finalIcon = cached; break; }
         }
+        // Nothing downloadable: keep the remote s2 URL so the tile still shows
+        // an icon (cacheRemoteIcons retries it later).
+        if (!finalIcon) finalIcon = autoCandidates[autoCandidates.length - 1];
       }
 
       if (this.activeContextShortcutId) {
@@ -3168,15 +3414,25 @@ class NewTabController {
       await this.repository.saveShortcuts(this.state.shortcuts);
       this.renderShortcuts();
       this.toggleShortcutDialog(false);
+      // Access may have just been granted: cache the other remote icons too.
+      if (hasAccess) this.cacheRemoteIcons();
     };
 
-    if (iconFile) {
-      // Process uploaded image to base64 persistence
-      const reader = new FileReader();
-      reader.onload = (e) => save(e.target.result);
-      reader.readAsDataURL(iconFile);
-    } else {
-      save();
+    try {
+      if (iconFile) {
+        // Uploaded image → data URL, stored with the shortcut.
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(iconFile);
+        });
+        await save(dataUrl);
+      } else {
+        await save();
+      }
+    } finally {
+      this._saving = false;
     }
   }
 
@@ -3622,8 +3878,6 @@ class NewTabController {
               timeFormat12: legacySettings.time_format === '12',
               showSearchBar: legacySettings.search_bar !== false,
               bgProvider: 'gradient',
-              bgUrl: '',
-              bgFileBase64: '',
               dimNight: legacySettings.dim_at_night || false,
               dimStart: '19:00',
               dimEnd: '07:00'
@@ -3645,8 +3899,8 @@ class NewTabController {
                   if (dataIconObj) iconBase64 = dataIconObj.dataURL;
                 }
                 importedShortcuts.push(new Shortcut(
-                  appData.id || 'imported_' + Math.random().toString(36).substr(2, 9),
-                  appData.name, appData.appLaunchUrl, iconBase64, '#D0BCFF', 1.0, 'contain'
+                  appData.id || 'imported_' + Math.random().toString(36).slice(2, 11),
+                  appData.name, appData.appLaunchUrl, iconBase64, '#1f2937', 1.0, 'contain'
                 ));
               }
             } catch (err) {
@@ -3656,31 +3910,33 @@ class NewTabController {
         });
       } else {
         // 2. STANDARD FORMAT IMPORT
-        if (parsed.settings) importedSettings = parsed.settings;
-        if (parsed.shortcuts) {
-          importedShortcuts = parsed.shortcuts.map(s => new Shortcut(s.id, s.name, s.url, s.icon, s.color, s.zoom, s.fit || 'contain'));
-        }
+        if (parsed.settings && typeof parsed.settings === 'object') importedSettings = parsed.settings;
+        if (Array.isArray(parsed.shortcuts)) importedShortcuts = parsed.shortcuts;
       }
+
+      importedShortcuts = this.sanitizeShortcuts(importedShortcuts);
+      importedSettings = this.sanitizeSettings(importedSettings);
 
       if (importedShortcuts.length === 0 && Object.keys(importedSettings).length === 0) {
         throw new Error('No valid data found in the file.');
       }
 
+      const undo = this.snapshotState();
       if (importedShortcuts.length > 0) this.state.shortcuts = importedShortcuts;
-      if (Object.keys(importedSettings).length > 0) this.state.settings = { ...this.state.settings, ...importedSettings };
+      if (Object.keys(importedSettings).length > 0) {
+        // Old backups carry the uploaded image inline (pre-0.9.3) and old
+        // wallpaper paths: run them through the same migrations as storage.
+        this.state.settings = this.repository.migrateSettings({ ...this.state.settings, ...importedSettings });
+        await this.migrateLegacyImage();
+      }
 
-      await this.repository.saveSettings(this.state.settings);
-      await this.repository.saveShortcuts(this.state.shortcuts);
-
-      this.renderSettingsUI();
-      this.renderBackground();
-      this.renderSearchUI();
-      this.renderShortcuts();
-      this.renderWallpaperDrawer();
-
+      await this.persistAndRefresh(undo.settings);
       this.toggleDrawer(false);
-      this.showToast(this.t('toast.importOk', { count: importedShortcuts.length }));
-
+      this.showToastWithAction(
+        this.t('toast.importOk', { count: importedShortcuts.length }),
+        this.t('toast.undo'),
+        () => this.restoreSnapshot(undo)
+      );
     } catch (error) {
       console.error(error);
       this.showToast(this.t('toast.importError'));
@@ -3688,30 +3944,89 @@ class NewTabController {
   }
 
   /**
-   * Reset all settings and shortcuts to factory defaults.
-   * Asks for native confirmation before proceeding.
+   * Rebuilds imported shortcuts from known fields only: valid URL, safe color
+   * and icon, unique ids. Invalid entries are dropped instead of failing the
+   * whole import.
    */
-  async resetConfigUseCase() {
-    const confirmed = confirm(this.t('dialog.resetConfirm'));
-    if (!confirmed) return;
+  sanitizeShortcuts(list) {
+    const seen = new Set();
+    const out = [];
+    for (const s of Array.isArray(list) ? list : []) {
+      if (!s || typeof s !== 'object') continue;
+      const url = Shortcut.normalizeUrl(s.url);
+      if (!url) continue;
+      let id = typeof s.id === 'string' && s.id ? s.id : '';
+      if (!id || seen.has(id)) id = 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      seen.add(id);
+      const name = (typeof s.name === 'string' && s.name.trim() ? s.name.trim() : new URL(url).hostname).slice(0, 60);
+      const zoom = Math.min(2.5, Math.max(0.5, Number(s.zoom) || 1));
+      out.push(new Shortcut(id, name, url, Shortcut.safeIcon(s.icon), Shortcut.safeColor(s.color), zoom,
+        s.fit === 'cover' ? 'cover' : 'contain'));
+    }
+    return out;
+  }
 
-    const defaultSettings = this.repository.getDefaultSettings();
-    const defaultShortcuts = this.repository.getDefaultShortcuts();
+  /**
+   * Keeps only known settings whose type matches the default. Legacy fields
+   * that migrations still read are let through.
+   */
+  sanitizeSettings(obj) {
+    const out = {};
+    if (!obj || typeof obj !== 'object') return out;
+    const defaults = this.repository.getDefaultSettings();
+    for (const [k, v] of Object.entries(obj)) {
+      if (k in defaults) {
+        const d = defaults[k];
+        if (Array.isArray(d) ? Array.isArray(v) : typeof v === typeof d) out[k] = v;
+      } else if (k === 'bgFileBase64' && typeof v === 'string' && v.startsWith('data:image/')) {
+        out[k] = v;
+      } else if (k === 'roundIcons' && typeof v === 'boolean') {
+        out[k] = v;
+      }
+    }
+    if (out.pageLabels) out.pageLabels = out.pageLabels.map((l) => (typeof l === 'string' ? l.slice(0, 24) : ''));
+    return out;
+  }
 
-    this.state.settings = defaultSettings;
-    this.state.shortcuts = defaultShortcuts;
+  snapshotState() {
+    return {
+      settings: JSON.parse(JSON.stringify(this.state.settings)),
+      shortcuts: JSON.parse(JSON.stringify(this.state.shortcuts))
+    };
+  }
 
+  async restoreSnapshot(snap) {
+    const prev = this.state.settings;
+    this.state.settings = snap.settings;
+    this.state.shortcuts = snap.shortcuts;
+    await this.persistAndRefresh(prev);
+  }
+
+  async persistAndRefresh(prevSettings) {
     await this.repository.saveSettings(this.state.settings);
     await this.repository.saveShortcuts(this.state.shortcuts);
+    this.refreshAllUI(prevSettings);
+  }
 
-    this.renderSettingsUI();
-    this.renderBackground();
-    this.renderSearchUI();
-    this.renderShortcuts();
-    this.renderWallpaperDrawer();
+  /**
+   * Reset all settings and shortcuts to factory defaults. No confirm dialog:
+   * the toast offers Undo for 6 s, and uploaded media in IndexedDB is only
+   * deleted once that window has passed.
+   */
+  async resetConfigUseCase() {
+    const undo = this.snapshotState();
+    this.state.settings = this.repository.getDefaultSettings();
+    this.state.shortcuts = this.repository.getDefaultShortcuts();
+    this.state.currentPage = 0;
+    await this.persistAndRefresh(undo.settings);
 
     this.toggleDrawer(false);
-    this.showToast(this.t('toast.resetDone'));
+    this.showToastWithAction(
+      this.t('toast.resetDone'),
+      this.t('toast.undo'),
+      () => this.restoreSnapshot(undo),
+      () => this.idbClear().catch((err) => console.error('[TabLine] Could not clear media:', err))
+    );
   }
 }
 

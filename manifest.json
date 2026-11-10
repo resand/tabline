@@ -13,7 +13,7 @@
     "unlimitedStorage",
     "search"
   ],
-  "host_permissions": [
+  "optional_host_permissions": [
     "<all_urls>"
   ],
   "content_security_policy": {
@@ -23,12 +23,5 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "action": {
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
   }
 }
