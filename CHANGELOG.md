@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Security & privacy
+
+- **No more "read and change all your data" warning at install.** Site access
+  is now optional and requested once, when you save your first shortcut. It is
+  only used to cache favicons and suggest page titles; if you decline, icons
+  load from their remote address.
+- Favicon and title lookups now run when you finish typing the site address
+  (blur, Enter or paste), not on every keystroke. Half-typed hosts such as
+  `github.co` no longer receive requests.
+- Default shortcuts, Popular presets and Chrome pages use **bundled icons**.
+  Opening a new tab makes no third-party request.
+- **Backup import is validated**: invalid URLs are dropped, colors are limited
+  to the picker's values, duplicate ids are regenerated and unknown settings
+  are ignored.
+
+### Fixed
+
+- **Changes no longer get lost across open tabs.** Every open new tab now picks
+  up changes saved in another one, instead of overwriting them on its next save.
+- `⌘/Ctrl + N` never reached the page (Chrome reserves it for a new window).
+  The Add Shortcut dialog now opens with **`N`**.
+- Addresses with spaces (`hola mundo`) are rejected with a message instead of
+  being saved as a broken shortcut. Enter now saves the dialog, and the URL
+  field gets focus first so the name suggestion can kick in.
+- ⌘/Ctrl/Shift/middle-click on a `chrome://` shortcut opens it in a new tab
+  instead of doing nothing.
+- Coming back with the Back button no longer leaves the launch animation and
+  progress bar running.
+- A trackpad swipe flips exactly one page (inertia used to flip two or three).
+- `←` / `→` paginate while the search box is focused but empty.
+- Factory reset now also deletes uploaded videos and images.
+- A shortcut whose favicon can't be downloaded keeps the remote icon instead of
+  showing only a letter, and dead icon hosts are no longer retried on every tab.
+
+### Changed
+
+- **Package size: 82 MB → 32 MB.** Wallpapers are WebP and the heavier videos
+  were re-encoded. Saved wallpaper choices are migrated automatically.
+- The wallpaper drawer loads on first open and uses small thumbnails; before,
+  every new tab decoded ~37 MB of full-size images for it.
+- Shortcuts open after 150 ms instead of 380 ms.
+- The background video pauses while the tab is hidden.
+- An uploaded background image is stored in IndexedDB (like videos) instead of
+  inside the settings. Existing images are moved automatically. Uploaded media
+  is not included in JSON backups.
+- **Import and factory reset offer Undo** in the toast; the reset confirmation
+  dialog is gone.
+- Context menu: keyboard navigation (arrows, Home/End, Esc returns focus) and
+  proper ARIA roles. The options button is no longer nested inside the link.
+- The context menu widens to fit its labels.
+- Drawers slide with `transform` and are hidden from keyboard focus when closed.
+- Removed the toolbar `action` button, which did nothing when clicked.
+
+---
+
 ## [0.9.2] — 2026-07-11
 
 ### Fixed

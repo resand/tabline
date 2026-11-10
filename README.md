@@ -31,7 +31,8 @@ _locales/es/            Manifest copy in Spanish
 newtab.html             Single-page UI (entry: chrome_url_overrides.newtab)
 newtab.js               NewTabController + I18N + CURATED_* + StorageRepository (~2900 lines)
 newtab.css              Design tokens in :root, then components (~2800 lines)
-wallpapers/             bg1.png…bg17.png + vid_*.mp4 (gallery assets)
+wallpapers/             bg1.webp…bg17.webp + vid_*.mp4 (gallery assets); thumbs/ = 320px drawer previews
+icons/presets/          Bundled brand icons for the default shortcuts and Popular presets
 icons/                  Extension icons (16, 48, 128)
 PRODUCT.md              Strategic guide (register, target users, anti-references)
 DESIGN.md               Visual guide (color, typography, motion, themes, components)
@@ -88,7 +89,7 @@ Surfaced to users in the About dialog (ⓘ in the sidebar or press `?`).
 | Key | Action |
 |---|---|
 | `/` or `⌘/Ctrl + K` | Focus the search bar |
-| `⌘/Ctrl + N` | Open the Add Shortcut dialog |
+| `N` | Open the Add Shortcut dialog (⌘/Ctrl + N is reserved by Chrome for a new window) |
 | `⌘/Ctrl + ,` | Toggle the Settings drawer |
 | `←` / `→` | Paginate the shortcut grid |
 | `?` | Open About (where this list lives) |
@@ -120,11 +121,13 @@ Before submitting `v0.9.0+`:
   the user's choice. Note `chrome.tabs.create` / `chrome.tabs.update` are used
   for `chrome://` shortcuts but do **not** require the `tabs` permission, so it
   is intentionally omitted.
-- `host_permissions: ["<all_urls>"]` is required for the favicon cache. The
-  Web Store reviewer will likely flag this — the justification is
-  "exclusively to fetch and cache the favicon of each domain the user adds
-  as a shortcut; no content scripts, no third-party servers other than
-  Google's s2/favicons as a fallback".
+- Host access is **optional** (`optional_host_permissions: ["<all_urls>"]`),
+  so installing shows no "read all your data" warning. It is requested once,
+  when the user saves their first shortcut, and is used only to download and
+  cache that site's favicon and suggest its title. If declined, icons stay as
+  remote URLs. Justification for the reviewer: "optional, requested at the
+  moment of use, exclusively to fetch and cache the favicon and page title of
+  each domain the user adds as a shortcut; no content scripts".
 - Provide at least one screenshot (1280×800) and a hosted privacy policy URL
   (current one: `https://renes.dev/privacy-tabline`).
 - Run the sanity checks above; all four must return `OK`.

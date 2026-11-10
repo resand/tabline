@@ -35,8 +35,8 @@ _locales/es/messages.json   Manifest copy in Spanish
 newtab.html            Single-page UI (entry: chrome_url_overrides.newtab)
 newtab.js              ~3.7k lines. Class NewTabController + I18N + CURATED_* arrays + StorageRepository + Shortcut
 newtab.css             ~3.2k lines. Design tokens in :root, then components
-wallpapers/            bg1.png…bg17.png + vid_*.mp4 (gallery assets)
-icons/                 Extension icons (16, 48, 128)
+wallpapers/            bg1.webp…bg17.webp + vid_*.mp4 (gallery assets); thumbs/ holds 320px previews for the drawer
+icons/                 Extension icons (16, 48, 128); icons/presets/ = bundled brand icons for defaults and presets
 PRODUCT.md             Strategic guide (register, users, anti-references)
 DESIGN.md              Visual guide (color, typography, motion, components)
 README.md              Setup, sanity checks, pre-launch checklist
@@ -68,7 +68,10 @@ GEMINI.md              AI assistant guide — this file
 ### Storage
 - `StorageRepository` abstracts `chrome.storage.local` with a `localStorage` fallback for non-extension dev contexts.
 - `getSettings()` merges `getDefaultSettings()` over the loaded blob — adding a new field with a default is safe for existing users.
-- Videos uploaded by the user live in **IndexedDB** (`dashtab-bg` DB — kept under the old slug to preserve existing users' data, `video` store, key `'current'`), not `chrome.storage`, because they easily exceed the 10 MB limit. The blob URL is revoked before re-creation to prevent memory leaks.
+- Videos **and images** uploaded by the user live in **IndexedDB** (`dashtab-bg` DB — kept under the old slug to preserve existing users' data, `video` store, key `'current'` for the video and `'image'` for the image), not `chrome.storage`. Videos exceed the quota, and keeping images out of the settings blob keeps every settings write small. `bgMediaRev` is bumped on upload so other tabs re-render. Uploaded media is not part of the JSON backup. The blob URL is revoked before re-creation to prevent memory leaks.
+- **Migrations:** `StorageRepository.migrateSettings()` runs on every load (and on imported backups) to upgrade old fields: PNG wallpaper paths → WebP, drop `bgUrl`. `migrateLegacyImage()` moves a pre-0.9.3 inline `bgFileBase64` image into IndexedDB. Any change to stored data must ship with a migration here — users update in place and must never lose their setup.
+- **Cross-tab sync:** every open new tab holds its own state, so `bindStorageSync()` listens to `chrome.storage.onChanged` and re-applies remote changes (`refreshAllUI`). Without it an older tab would overwrite what a newer tab saved.
+- **Import** goes through `sanitizeShortcuts()` / `sanitizeSettings()` (valid URLs, color whitelist, unique ids, known keys only). Import and factory reset both offer Undo in the toast instead of a `confirm()`.
 
 ### Themes (accent palettes)
 - Six curated accents are defined in `NewTabController.ACCENT_PALETTES`: `space` (Titanium Gray, default), `lavender`, `sand`, `ocean`, `forest`, `mono`. Each is an HSL triple (e.g. `'215 8% 48%'`).
@@ -98,9 +101,10 @@ GEMINI.md              AI assistant guide — this file
 ### Add / Edit shortcut
 - The "+" button lives at the top of the right sidebar (`.add-shortcut-btn-primary`, filled accent style — visually distinct from the outlined utility buttons).
 - Dialog has three tabs: Popular presets, Custom URL, Chrome system pages.
-- Popular preset icons that fail to load fall back to a colored letter chip in the picker (broken Wikipedia paths route through `https://www.google.com/s2/favicons?domain=…&sz=128`).
+- Popular preset icons are bundled in `icons/presets/`; one that fails to load falls back to a colored letter chip in the picker.
+- The URL field is focused first and validated with `Shortcut.normalizeUrl()`; Enter in any field saves. The card is a `<div class="shortcut-card">` holding the `<a class="shortcut-link">` and the kebab button as siblings.
 - Empty state: when `state.shortcuts.length === 0`, `renderEmptyState()` shows a centered CTA that opens the add dialog.
-- Loading skeleton: 14 placeholder boxes are rendered in HTML directly inside `#shortcuts-grid` so the first paint never flashes empty. `renderShortcuts()` clears them on the first run.
+- Loading skeleton: 21 placeholder boxes are rendered in HTML directly inside `#shortcuts-grid` so the first paint never flashes empty. `renderShortcuts()` clears them on the first run.
 
 ### Context menu (right-click on a shortcut)
 - Built once in HTML (`#shortcut-context-menu`) and reused.
@@ -127,13 +131,15 @@ Single `bgProvider` setting drives `renderBackground()`:
 - `video` → curated video from `bgVideoUrl`.
 - `video-url` → external video URL.
 - `video-file` → blob from IndexedDB.
-- `custom-url` / `custom-file` → user image by URL or base64.
+- `custom-url` / `custom-file` → user image by URL, or blob from IndexedDB.
 - URLs are escaped before interpolation into `url('…')` so a hostile string can't break out of the CSS literal.
 
 ### Icon cache
 - `cacheIconUrl(url)` fetches and converts a remote image to a data URL (≤ 250 KB).
 - Runs on shortcut save (in `saveShortcutUseCase`) and as a background sweep on startup (`cacheRemoteIcons`).
-- Requires `host_permissions: ["<all_urls>"]` in the manifest. The Chrome Web Store reviewer is most likely to question this permission; the justification is "exclusively to fetch and cache the favicon of each domain the user adds as a shortcut; no content scripts, no third-party servers other than Google's s2/favicons as a fallback".
+- Host access is **optional** (`optional_host_permissions: ["<all_urls>"]`), so installing shows no "read all your data" warning. It is requested once, on the first shortcut save (`hostAccessAsked`), from the click handler before any `await`. If declined, icons are stored as remote URLs and still display; title suggestions don't work.
+- Favicon and `<title>` lookups run when the URL is committed (blur, Enter, paste), never per keystroke, so half-typed hosts get no requests.
+- Default shortcuts, Popular presets and Chrome pages use bundled icons in `icons/presets/` — opening the page makes no third-party requests.
 
 ---
 
@@ -235,7 +241,7 @@ Surfaced to users in the About dialog. Keep this list and `handleGlobalKeyDown` 
 | Key | Action |
 |---|---|
 | `/` or `⌘/Ctrl + K` | Focus the search bar |
-| `⌘/Ctrl + N` | Open the Add Shortcut dialog |
+| `N` | Open the Add Shortcut dialog (⌘/Ctrl + N is reserved by Chrome for a new window) |
 | `⌘/Ctrl + ,` | Toggle the Settings drawer |
 | `←` / `→` | Paginate the shortcut grid |
 | `?` | Open About |

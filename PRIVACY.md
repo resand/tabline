@@ -1,6 +1,6 @@
 # TabLine — Privacy Policy
 
-**Last updated:** July 11, 2026
+**Last updated:** November 9, 2026
 
 TabLine ("the extension") is a Chrome new-tab replacement developed by René Sandoval. This document explains how the extension handles user data.
 
@@ -13,18 +13,19 @@ TabLine ("the extension") is a Chrome new-tab replacement developed by René San
 All your settings and content are stored exclusively in your own browser, using Chrome's local storage APIs:
 
 - **`chrome.storage.local`** — language preference, clock format, background choice, night-dim schedule, icon roundness, the list of shortcut tiles you create, and other UI preferences.
-- **IndexedDB** (`dashtab-bg` database) — background videos you upload from your own device.
+- **IndexedDB** (`dashtab-bg` database) — background videos and images you upload from your own device.
 
-This data never leaves your browser. Uninstalling the extension removes it. There is no cloud sync.
+This data never leaves your browser. Uninstalling the extension removes it. There is no cloud sync. JSON backups you export contain your settings and shortcuts, not uploaded videos or images.
 
 ## Network requests
 
 The extension makes outbound network requests only in four narrow cases:
 
-1. **Favicons for shortcuts.** When you add a shortcut, TabLine fetches the favicon of that shortcut's own domain (typically `<domain>/apple-touch-icon.png`). If that fails, it falls back to Google's public `s2/favicons` endpoint. The favicon is downloaded once and cached locally as a data URL — subsequent loads are offline.
-2. **Page-title suggestion.** When you paste a URL in the "Add shortcut" dialog, TabLine fetches that page once to read its `<title>` / Open Graph name and suggest a shortcut name. The request is sent without cookies (`credentials: 'omit'`) and gives up after 4.5 seconds.
+1. **Favicons for shortcuts you add.** When you enter a site address in the "Add shortcut" dialog and finish typing it (leave the field, press Enter or paste), TabLine loads the favicon of that site's own domain (typically `<domain>/apple-touch-icon.png`). If that fails, it falls back to Google's public `s2/favicons` endpoint. Nothing is requested while you are still typing. If you granted the optional site access, the favicon is downloaded once and cached locally as a data URL, so later loads are offline.
+2. **Page-title suggestion.** At the same moment, and only if you granted the optional site access, TabLine fetches that page once to read its `<title>` / Open Graph name and suggest a shortcut name. The request is sent without cookies (`credentials: 'omit'`) and gives up after 4.5 seconds.
 3. **External wallpaper URL or external video URL** — only if you, the user, explicitly paste one as a background source.
-4. **Curated wallpaper and video assets** bundled with the extension itself.
+
+The default shortcuts, the "Popular" presets, the wallpapers, the videos and the font are bundled with the extension, so opening a new tab makes no network request on its own.
 
 No request carries any identifying information about you beyond what the browser normally sends to those endpoints (User-Agent, IP).
 
@@ -32,7 +33,7 @@ No request carries any identifying information about you beyond what the browser
 
 - **`storage`** and **`unlimitedStorage`** — to persist your settings and your uploaded background videos locally. `unlimitedStorage` is required because user videos easily exceed the default 10 MB quota.
 - **`search`** — used solely to send the query you type in the new-tab search box to your own default search engine via `chrome.search.query()`. It is invoked only when you submit a search; no query is sent anywhere else and no search setting is ever read or changed.
-- **`host_permissions: <all_urls>`** — solely to fetch favicons for the shortcut domains you add. The extension does not run any content script, does not read or modify the content of any web page, and does not communicate with any third-party server beyond the cases listed above.
+- **Optional site access (`<all_urls>`)** — not granted at install. TabLine asks for it once, when you save your first shortcut, and uses it solely to download the favicon and read the title of the sites you add as shortcuts. You can decline it (icons are then loaded from their remote address) or revoke it any time in `chrome://extensions`. The extension does not run any content script, does not read or modify the content of any web page, and does not communicate with any third-party server beyond the cases listed above.
 
 ## Third parties
 
