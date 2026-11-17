@@ -16,7 +16,7 @@ reclame atención.
 ## Product Purpose
 
 Sustituir la nueva pestaña por defecto por un dashboard personal: reloj, barra
-de búsqueda Google, una rejilla paginada de atajos reordenables (7×3 por
+de búsqueda (con el motor que el usuario tenga en Chrome), una rejilla paginada de atajos reordenables (7×3 por
 página, drag & drop, scroll del mouse o flechas para paginar) y un fondo
 personalizable (gradiente, wallpaper, video o URL). El éxito es invisible: el
 usuario llega a lo que quiere sin pensar en la herramienta.

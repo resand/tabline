@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- The extension description (`_locales/`) no longer says "Google search": since
+  0.9.1 the search box uses the engine set in Chrome.
+- README gains a Features section, and the store listing text is aligned with
+  0.9.3 (`N` shortcut, optional site access, no network requests on open,
+  undoable import/reset, no autocomplete claim).
+
+---
+
 ## [0.9.3] — 2026-11-10
 
 ### Security & privacy

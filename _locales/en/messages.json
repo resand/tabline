@@ -4,7 +4,7 @@
     "description": "Extension name shown in chrome://extensions and the Chrome Web Store listing."
   },
   "ext_description": {
-    "message": "A quiet new tab: clock, Google search, reorderable squircle shortcuts, and customizable HD wallpapers.",
+    "message": "A quiet new tab: clock, search, reorderable squircle shortcuts, and customizable HD wallpapers.",
     "description": "Short description shown in chrome://extensions and the Chrome Web Store listing."
   }
 }

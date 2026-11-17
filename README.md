@@ -8,6 +8,24 @@ A quiet new tab for Chrome: clock, search, reorderable squircle shortcuts and cu
 
 ---
 
+## Features
+
+- **Clock and date.** 12/24-hour format with a localized date and tabular figures.
+- **Clean search.** The search box uses the search engine set in Chrome (`chrome.search.query`). No autocomplete, no third-party suggestions.
+- **Reorderable squircle shortcuts.** A 7-column grid with 3 or 4 rows (or automatic by screen height). Drag to reorder; edit icon, color, zoom and fill. Unlimited pages, optional presets for common web services, and `chrome://` pages.
+- **Named pages.** Double-click a pagination dot to name the page. Drop a shortcut on another dot to move it there.
+- **Auto-title.** Paste a URL and TabLine suggests the name from `<title>` or Open Graph, when the optional site access is granted.
+- **Launch feedback.** A short accent pulse confirms the click before the page loads.
+- **Wallpapers and videos.** AI-generated gallery (Nano Banana images, Omni videos), animated gradient, daily wallpaper, or your own image/video by URL or file.
+- **Six accent themes.** Titanium Gray (default), Lavender, Sand, Ocean, Forest, Mono, all derived from one `--accent` variable.
+- **Night dim.** The background darkens automatically during a schedule you set.
+- **Keyboard shortcuts.** See [Keyboard shortcuts](#keyboard-shortcuts).
+- **Spanish and English** with automatic detection.
+- **Backup.** Export/import JSON, one-click factory reset; import and reset can be undone.
+- **100% local, no telemetry.** Opening a tab makes no network request; icons, wallpapers, videos and the font are bundled. The only requests come from adding a shortcut (its favicon, once, and its `<title>`). Site access is optional and requested the first time you save a shortcut. See [`PRIVACY.md`](PRIVACY.md).
+
+---
+
 ## Install (for development)
 
 1. Clone or download this repo.

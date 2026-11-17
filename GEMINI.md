@@ -6,7 +6,7 @@ Guidance for AI coding assistants working on **TabLine**, a Chrome new-tab exten
 
 ## 1. What this project is
 
-**TabLine** replaces Chrome's default new-tab page with a personal launcher: a clock, Google search bar, a paginated 7-column grid of reorderable app shortcuts (3 or 4 rows per the density setting), and a customizable background (gradient, wallpaper gallery, daily rotation, video gallery, custom URL, or local file).
+**TabLine** replaces Chrome's default new-tab page with a personal launcher: a clock, a search bar (routed to the user's default engine via `chrome.search`), a paginated 7-column grid of reorderable app shortcuts (3 or 4 rows per the density setting), and a customizable background (gradient, wallpaper gallery, daily rotation, video gallery, custom URL, or local file).
 
 > Note: the project was renamed from "DashTab" (which collided with several existing Chrome Web Store extensions). Some internal identifiers — notably the IndexedDB name `dashtab-bg` — kept the old slug on purpose to avoid breaking storage for existing users. Don't rename those without a migration path.
 
